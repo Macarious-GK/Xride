@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import *
-from ride_V0 import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CarViewSet
+
+router = DefaultRouter()
+router.register(r'cars', CarViewSet, basename='car')
 
 urlpatterns = [
-    # path('admin/', admin.site.urls),
-
+    path('', include(router.urls)),
 ]
