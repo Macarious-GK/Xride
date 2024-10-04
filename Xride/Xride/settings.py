@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ride_V0',
+    'ride_V1',
     'rest_framework.authtoken',
     'rest_framework',
     'corsheaders',
@@ -135,4 +136,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Change to desired lifetime (e.g., 60 minutes)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Change to desired refresh token lifetime (e.g., 7 days)
+    # Other settings...
 }
