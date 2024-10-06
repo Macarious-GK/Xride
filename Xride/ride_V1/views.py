@@ -118,3 +118,52 @@ class ChangeDoorStatusView(APIView):
         car.save(update_fields=['door_status'])
 
         return Response({"message": f"The door is now {car.door_status}."}, status=status.HTTP_200_OK)
+
+
+
+
+# import paho.mqtt.client as mqtt
+
+# # Function to publish the door status via MQTT
+# def publish_door_status(car_id, door_status):
+#     client = mqtt.Client()
+    
+#     # Connect to the MQTT broker (replace with the actual IP of the broker)
+#     client.connect("BROKER_IP", 1883, 60)
+    
+#     # Construct the topic specific to the car
+#     topic = f"car/{car_id}/door_status"
+    
+#     # Publish the door status (open or close)
+#     message = f"door_status:{door_status}"
+#     client.publish(topic, message)
+    
+#     # Start the MQTT loop to handle communication (non-blocking)
+#     client.loop_start()
+
+# # The view to change the car's door status
+# class ChangeDoorStatusView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, car_id):
+#         user = request.user
+
+#         # Check if the car exists
+#         car = Car.objects.filter(id=car_id).first()
+#         if not car:
+#             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Check if the car is reserved by the user
+#         reservation = Reservation.objects.filter(user=user, car=car).first()
+#         if not reservation:
+#             return Response({"error": "You do not have permission to change the door status of this car."}, status=status.HTTP_403_FORBIDDEN)
+
+#         # Toggle the door status
+#         new_door_status = 'close' if car.door_status == 'open' else 'open'
+#         car.door_status = new_door_status
+#         car.save(update_fields=['door_status'])
+
+#         # Publish the updated door status to the IoT device (car)
+#         publish_door_status(car_id, new_door_status)
+
+#         return Response({"message": f"The door is now {car.door_status}."}, status=status.HTTP_200_OK)
