@@ -1,36 +1,71 @@
-import requests
-from django.http import JsonResponse
-from django.conf import settings
-import hmac
-import hashlib
-import json
+# iotapp/views.py
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import Car
+from .serializers import CarSerializer
 
-def generate_hmac(data):
-    return hmac.new(settings.PAYMOB_HMAC_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
+class CarStatusView(APIView):
+    """Get the current temperature and door status of the car."""
+    
+    def get(self, request, car_id):
+        try:
+            car = Car.objects.get(pk=car_id)
+            serializer = CarSerializer(car)
+            return Response(serializer.data)
+        except Car.DoesNotExist:
+            return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
 
-def create_payment(request):
-    if request.method == 'POST':
-        amount = request.POST.get('amount')  # Get the amount from the request
-        
-        # Prepare the order payload
-        order_data = {
-            "amount_cents": int(amount) * 100,  # Amount in cents
-            "currency": "EGP",  # Currency
-            "merchant_id": settings.PAYMOB_MERCHANT_ID,
-            "integration_id": settings.PAYMOB_INTEGRATION_ID,
-            "description": "Payment Description",  # Add your payment description
-        }
 
-        # Generate HMAC
-        hmac_value = generate_hmac(json.dumps(order_data))
+class DoorStatusUpdateView(APIView):
+    """Update the door status of the car."""
+    
+    def post(self, request, car_id):
+        try:
+            car = Car.objects.get(pk=car_id)
+            action = request.data.get('action')
 
-        # Make a request to create the order
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {settings.PAYMOB_API_KEY}',
-            'HMAC': hmac_value,
-        }
+            if action in ['lock', 'unlock']:
+                car.door_status = 'locked' if action == 'lock' else 'unlocked'
+                car.save()
+                return Response({'status': f'Door {action} command sent.'})
 
-        response = requests.post("https://accept.paymob.com/api/ecommerce/orders", json=order_data, headers=headers)
+            return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+        except Car.DoesNotExist:
+            return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse(response.json())
+
+class TemperatureUpdateView(APIView):
+    """Update the temperature of the car."""
+    
+    def post(self, request, car_id):
+        try:
+            car = Car.objects.get(pk=car_id)
+            new_temperature = request.data.get('temperature')
+
+            if new_temperature is not None:
+                car.temp = new_temperature
+                car.save()
+                return Response({'status': 'Temperature updated successfully.', 'new_temperature': car.temp}, status=status.HTTP_200_OK)
+
+            return Response({'error': 'Temperature value is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Car.DoesNotExist:
+            return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GasUpdateView(APIView):
+    """Update the gas level of the car."""
+    
+    def post(self, request, car_id):
+        try:
+            car = Car.objects.get(pk=car_id)
+            new_gas = request.data.get('gas')
+
+            if new_gas is not None:
+                car.gas = new_gas
+                car.save()
+                return Response({'status': 'Gas updated successfully.', 'new_gas': car.gas}, status=status.HTTP_200_OK)
+
+            return Response({'error': 'Gas value is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Car.DoesNotExist:
+            return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
