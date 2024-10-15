@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'ride_V0',
     'ride_V1',
     'ride_V2',
+    'ride_V3',
     'rest_framework.authtoken',
     'rest_framework',
     'corsheaders',
@@ -157,8 +158,4 @@ SIMPLE_JWT = {
     # Other settings...
 }
 
-
-PAYMOB_MERCHANT_ID='705514'
-PAYMOB_API_KEY='ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6VXhNaUo5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2libUZ0WlNJNkltbHVhWFJwWVd3aUxDSndjbTltYVd4bFgzQnJJam8yTkRJeE1UbDkuQW9hVWxMZzk3YlRxd0YyZkhOend5bmdJbG5MT3p5VDZRT1c4cnF6THpRanRXMkEzS19TaFZFemg3TVV1aExQMWpZUVYwVm9nNGotbzloWEpkVmItamc='
-PAYMOB_HMAC_SECRET='52FB37F0ADCC772AE92CDBC5BB9DE26F'
-PAYMOB_INTEGRATION_ID='3138435'
+AUTH_USER_MODEL = 'ride_V3.XrideUser'

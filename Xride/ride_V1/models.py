@@ -23,7 +23,7 @@ class Car(models.Model):
         return self.reserved_by is not None
 
 class Reservation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # User who made the reservation
+    # user = models.ForeignKey(User, on_delete=models.CASCADE)  # User who made the reservation
     car = models.OneToOneField(Car, on_delete=models.CASCADE)  # The car that is reserved
     reserved_at = models.DateTimeField(auto_now_add=True)  # Timestamp when the car was reserved
     def __str__(self):
