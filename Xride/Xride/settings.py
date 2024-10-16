@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework',
     'corsheaders',
+    # 'djoser',
 
 ]
 
@@ -159,3 +160,8 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'ride_V3.XrideUser'
+
+
+# DJOSER={
+#     "USER_ID_FIELD":"username",
+# }

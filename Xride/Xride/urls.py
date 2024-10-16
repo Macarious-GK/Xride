@@ -30,6 +30,8 @@ urlpatterns = [
     path('V2/',include('ride_V2.urls')),
     path('V3/',include('ride_V3.urls')),
     # Token obtain URLs
+    # path('auth/',include('djoser.urls')),
+    # path('auth/token', include('djoser.urls.jwt')),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
