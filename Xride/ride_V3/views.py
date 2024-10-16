@@ -164,9 +164,20 @@ class DoorStatusUpdateView(APIView):
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-
-
-
+class EchoView(APIView):
+    """Echoes back the POST request body as JSON."""
+    
+    def post(self, request):
+        # Get the request data
+        data = request.data
+        print (data)
+        
+        # If the request data is empty or None, return an empty JSON object
+        if not data:
+            return Response({'error':"nothing"}, status=status.HTTP_200_OK)
+        
+        # Return the data as the response
+        return Response(data, status=status.HTTP_200_OK)
 
 
 
