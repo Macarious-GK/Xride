@@ -161,6 +161,8 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'ride_V3.XrideUser'
 
+HMAC_SECRET = ""
+
 
 # DJOSER={
 #     "USER_ID_FIELD":"username",
