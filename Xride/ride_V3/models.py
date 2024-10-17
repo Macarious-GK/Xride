@@ -76,3 +76,14 @@ class Reservation(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.car.car_name} ({self.status})"
 
+
+
+class Payment(models.Model):
+    transaction_id = models.CharField(max_length=100)
+    amount_cents = models.IntegerField()
+    success = models.BooleanField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Transaction {self.transaction_id} - {self.get_status_display()} - {self.amount_cents / 100} {self.currency}"

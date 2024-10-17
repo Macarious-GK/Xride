@@ -40,11 +40,11 @@ class SimpleCarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
         fields = ['car_name', 'year']  # Include only car_name and year
+
 class SimplUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = XrideUser
         fields = ['username']  # Include only car_name and year
-
 
 class ReservationSerializer(serializers.ModelSerializer):
     car = SimpleCarSerializer()  # Nested serializer for car details
@@ -62,3 +62,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             'status',
             'duration',  # Calculated duration
         ]
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['transaction_id', 'order_id', 'amount_cents', 'currency', 'status']

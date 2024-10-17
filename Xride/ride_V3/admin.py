@@ -10,3 +10,4 @@ class XrideUserAdmin(UserAdmin):
 
 admin.site.register(Car)
 admin.site.register(Reservation)
+admin.site.register(Payment)

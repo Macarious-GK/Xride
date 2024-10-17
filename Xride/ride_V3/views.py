@@ -163,7 +163,6 @@ class DoorStatusUpdateView(APIView):
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
 class EchoView(APIView):
     """Echoes back the POST request body as JSON."""
     
