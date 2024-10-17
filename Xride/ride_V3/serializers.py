@@ -44,7 +44,7 @@ class SimpleCarSerializer(serializers.ModelSerializer):
 class SimplUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = XrideUser
-        fields = ['username']  # Include only car_name and year
+        fields = ['id', 'username']  # Include only id and username
 
 class ReservationSerializer(serializers.ModelSerializer):
     car = SimpleCarSerializer()  # Nested serializer for car details
@@ -64,6 +64,22 @@ class ReservationSerializer(serializers.ModelSerializer):
         ]
 
 class PaymentSerializer(serializers.ModelSerializer):
+    user = SimplUserSerializer(read_only=True)  # Include the user serializer as read-only
+
     class Meta:
         model = Payment
-        fields = ['transaction_id', 'order_id', 'amount_cents', 'currency', 'status']
+        fields = [
+            'id', 
+            'user', 
+            'transaction_id', 
+            'order_id', 
+            'collector', 
+            'card_type', 
+            'card_last_four', 
+            'currency', 
+            'amount', 
+            'created_at', 
+            'txn_response_code', 
+            'status'
+        ]
+        

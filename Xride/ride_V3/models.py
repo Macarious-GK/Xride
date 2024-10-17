@@ -25,7 +25,7 @@ class XrideUser(AbstractUser):
     )
 
     def __str__(self):
-        return f"Name:{self.username} Balance:{self.wallet_balance}"
+        return f"Name: {self.username} Balance: {self.wallet_balance}"
 
 class Car(models.Model):
     DOOR_STATUS_CHOICES = [
@@ -76,14 +76,24 @@ class Reservation(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.car.car_name} ({self.status})"
 
-
-
 class Payment(models.Model):
-    transaction_id = models.CharField(max_length=100)
-    amount_cents = models.IntegerField()
-    success = models.BooleanField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    STATUS_CHOICES = [
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+        ('pending', 'Pending'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    transaction_id = models.BigIntegerField(unique=True, null=True, blank=True)  # Allow null values for initial creation
+    order_id = models.BigIntegerField(null=True, blank=True)  # Nullable for future use
+    collector = models.CharField(max_length=255, null=True, blank=True)  # Nullable
+    card_type = models.CharField(max_length=20, blank=True, null=True)  # e.g., 'Visa', 'MasterCard'
+    card_last_four = models.CharField(max_length=4, blank=True, null=True)  # Last four digits of the card
+    currency = models.CharField(max_length=3, blank=True, null=True)  # e.g., 'EGP'
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Transaction amount
+    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set to now when created
+    txn_response_code = models.CharField(max_length=10, null=True, blank=True)  # Nullable for initial creation
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')  # Default to 'pending'
 
     def __str__(self):
-        return f"Transaction {self.transaction_id} - {self.get_status_display()} - {self.amount_cents / 100} {self.currency}"
+        return f"{self.user} :- Transaction {self.transaction_id} - {self.amount} {self.currency} - Status: {self.status}"

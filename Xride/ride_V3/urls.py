@@ -11,7 +11,7 @@ urlpatterns = [
     # #-----------------------------------------------------------
     path('user/profile/', UserDetailView.as_view(), name='view-profile'),
     path('user/trips/', UserListReservationsView.as_view(), name='release_car'),
-    # path('user/<int:car_id>/payments/', TemperatureUpdateView.as_view(), name='update-temperature'),
+    path('user/payments/create/', PaymentCreateView.as_view(), name='update-temperature'),
     # #---------------------------------------------------------------------
     path('eco/', EchoView.as_view(), name='update-temperature'),
 

@@ -218,3 +218,41 @@ class EchoView(APIView):
                 value = str(value).lower()
             hmac_string += str(value)
         return hmac_string
+
+class PaymentCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        amount = request.data.get('amount')
+        user = request.user
+        
+        # Check if amount is provided
+        if not amount:
+            return Response({"error": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the user has any pending payments
+        pending_payment = Payment.objects.filter(user=user, status='pending').first()
+        if pending_payment:
+            return Response({"error": "You already have a pending payment."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Prepare data for the serializer
+        data = {
+            "amount": amount,
+            "currency": "EGP",  # Assuming EGP is the default currency
+            "status": "pending"  # Setting status to 'pending'
+        }
+
+        # Initialize the serializer with the data
+        serializer = PaymentSerializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            payment = serializer.save(user=user)  # Save the payment with the user
+            response_data = {
+                "id": payment.id,
+                "amount": payment.amount,
+                "currency": payment.currency,
+                "status": payment.status,
+                "created_at": payment.created_at.isoformat()  # Return the created_at in ISO format
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
