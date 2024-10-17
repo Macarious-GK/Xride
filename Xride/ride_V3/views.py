@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -11,6 +12,8 @@ from .serializers import *
 from django.utils import timezone
 from math import radians, cos, sin, asin, sqrt
 from datetime import datetime
+from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 
 def calculate_duration_in_hours(start_time: datetime, end_time: datetime) -> float:
@@ -220,6 +223,7 @@ class EchoView(APIView):
         return hmac_string
 
 class PaymentCreateView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -256,3 +260,59 @@ class PaymentCreateView(APIView):
             return Response(response_data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+class PaymentConfirmation(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        payment_type = request.data.get('type')
+        obj = request.data.get('obj')
+        if payment_type != "TRANSACTION" or not isinstance(obj, dict):
+            return Response({"error": "Invalid request format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extract required fields safely
+        transaction_id = obj.get('id')
+        order_data = obj.get('order', {})
+        source_data = obj.get('source_data', {})
+        data_info = obj.get('data', {})
+
+        order_id = order_data.get('id')
+        collector = order_data.get('merchant', {}).get('company_name')
+        card_type = source_data.get('sub_type')
+        card_last_four = source_data.get('pan')
+        currency = obj.get('currency')
+        amount = obj.get('amount_cents')
+        txn_response_code = data_info.get('txn_response_code')
+        status_info = data_info.get('migs_result')
+
+        # Validate the extracted data
+        required_fields = [transaction_id, order_id, card_type, currency, amount, txn_response_code, status_info]
+        if any(field is None for field in required_fields):
+            return Response({"error": "Missing required fields in the transaction data."}, status=status.HTTP_400_BAD_REQUEST)
+        if Payment.objects.filter(transaction_id=transaction_id).exists():
+            return Response({"error": "Transaction ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        # Find the payment record using the transaction ID and user
+        payment = get_object_or_404(Payment, user=request.user, status="pending")
+
+        # Validate amount and currency
+        if payment.amount != amount or payment.currency != currency:
+            return Response({"error": "Invalid transaction data."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the payment record
+        payment.order_id = order_id
+        payment.collector = collector
+        payment.card_type = card_type
+        payment.card_last_four = card_last_four[-4:] if card_last_four else None  # Ensure only the last four digits are stored
+        payment.currency = currency
+        payment.amount = amount
+        payment.txn_response_code = txn_response_code
+        payment.status = status_info
+        payment.transaction_id = transaction_id
+
+        with transaction.atomic():
+            payment.save()
+            # Update the user's wallet balance
+            user = payment.user
+            user.wallet_balance += Decimal(amount) / Decimal(100)
+            user.save()
+        return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
