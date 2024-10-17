@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -169,18 +171,50 @@ class EchoView(APIView):
     def post(self, request):
         # Get the request data
         data = request.data
-        print (data)
-        
-        # If the request data is empty or None, return an empty JSON object
         if not data:
-            return Response({'error':"nothing"}, status=status.HTTP_200_OK)
+            return Response({'error': "nothing"}, status=status.HTTP_200_OK)
         
+        data = data["obj"]
+        received_hmac = request.query_params.get('hmac')
+        
+         # Define the order of keys for HMAC calculation
+        hmac_keys = [
+            'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
+            'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
+            'is_voided', 'order.id', 'owner', 'pending', 'source_data.pan', 'source_data.sub_type',
+            'source_data.type', 'success'
+        ]
+
+        # Sort the data by key and concatenate the values in the specified order
+        concatenated_string = self.generate_hmac_string(data, hmac_keys)
+
+        print("concatenated_string",concatenated_string)
+
+        # Calculate the HMAC using SHA512 and your HMAC secret
+        secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
+        calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
+
+        print("calculated_hmac",calculated_hmac)
+        print("received_hmac",received_hmac)
+        # Compare the calculated HMAC with the received HMAC
+        if calculated_hmac != received_hmac:
+            return Response({'error': 'Invalid HMAC'}, status=status.HTTP_403_FORBIDDEN)
+
+        print("HMAC is valid")
         # Return the data as the response
         return Response(data, status=status.HTTP_200_OK)
-
-
-
-
-
-
-
+    
+    def get_nested_value(self, data, key):
+        keys = key.split('.')
+        for k in keys:
+            data = data.get(k, {})
+        return data
+    
+    def generate_hmac_string(self, data, keys):
+        hmac_string = ''
+        for key in keys:
+            value = self.get_nested_value(data, key)
+            if value in (True, False):
+                value = str(value).lower()
+            hmac_string += str(value)
+        return hmac_string
