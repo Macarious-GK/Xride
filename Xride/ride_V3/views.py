@@ -228,22 +228,25 @@ class PaymentCreateView(APIView):
 
     def post(self, request):
         amount = request.data.get('amount')
+        order_id = request.data.get('order_id')
         user = request.user
         
         # Check if amount is provided
-        if not amount:
-            return Response({"error": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not amount or not order_id:
+            return Response({"error": "Amount and Order_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the user has any pending payments
         pending_payment = Payment.objects.filter(user=user, status='pending').first()
-        if pending_payment:
-            return Response({"error": "You already have a pending payment."}, status=status.HTTP_400_BAD_REQUEST)
+        payment_order_exist = Payment.objects.filter(user=user, order_id=order_id).first()
+        if pending_payment or payment_order_exist:
+            return Response({"error": "You already have this order or a pending Payment"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Prepare data for the serializer
         data = {
             "amount": amount,
             "currency": "EGP",  # Assuming EGP is the default currency
-            "status": "pending"  # Setting status to 'pending'
+            "status": "pending",  # Setting status to 'pending'
+            "order_id": order_id
         }
 
         # Initialize the serializer with the data
@@ -255,14 +258,14 @@ class PaymentCreateView(APIView):
                 "amount": payment.amount,
                 "currency": payment.currency,
                 "status": payment.status,
-                "created_at": payment.created_at.isoformat()  # Return the created_at in ISO format
+                "created_at": payment.created_at.isoformat(),  # Return the created_at in ISO format
+                "order_id": payment.order_id,
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 class PaymentConfirmation(APIView):
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         payment_type = request.data.get('type')
@@ -292,7 +295,7 @@ class PaymentConfirmation(APIView):
         if Payment.objects.filter(transaction_id=transaction_id).exists():
             return Response({"error": "Transaction ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
         # Find the payment record using the transaction ID and user
-        payment = get_object_or_404(Payment, user=request.user, status="pending")
+        payment = get_object_or_404(Payment, order_id=order_id, status="pending")
 
         # Validate amount and currency
         if payment.amount != amount or payment.currency != currency:
@@ -347,8 +350,8 @@ class PaymentConfirmationWithHMAC(APIView):
         transaction_id = transaction_data['transaction_id']
         if Payment.objects.filter(transaction_id=transaction_id).exists():
             return Response({"error": "This Transaction already Completed."}, status=status.HTTP_400_BAD_REQUEST)
-
-        payment = self.get_pending_payment(request.user)
+        order_id = transaction_data['order_id']
+        payment = self.get_pending_payment(order_id)
         if not self.validate_payment_amount_currency(payment, transaction_data['amount'], transaction_data['currency']):
             return Response({"error": "Invalid transaction data."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -382,8 +385,8 @@ class PaymentConfirmationWithHMAC(APIView):
         required_fields = ['transaction_id', 'order_id', 'card_type', 'currency', 'amount', 'txn_response_code', 'status_info']
         return all(transaction_data.get(field) is not None for field in required_fields)
 
-    def get_pending_payment(self, user):
-        return get_object_or_404(Payment, user=user, status="pending")
+    def get_pending_payment(self, order_id):
+        return get_object_or_404(Payment, order_id=order_id, status="pending")
 
     def validate_payment_amount_currency(self, payment, amount, currency):
         return payment.amount == amount and payment.currency == currency

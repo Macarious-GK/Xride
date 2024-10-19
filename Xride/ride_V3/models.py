@@ -85,7 +85,7 @@ class Payment(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     transaction_id = models.BigIntegerField(unique=True, null=True, blank=True)  # Allow null values for initial creation
-    order_id = models.BigIntegerField(null=True, blank=True)  # Nullable for future use
+    order_id = models.BigIntegerField(unique=True, null=True, blank=True)  # Nullable for future use
     collector = models.CharField(max_length=255, null=True, blank=True)  # Nullable
     card_type = models.CharField(max_length=20, blank=True, null=True)  # e.g., 'Visa', 'MasterCard'
     card_last_four = models.CharField(max_length=4, blank=True, null=True)  # Last four digits of the card
@@ -96,4 +96,4 @@ class Payment(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')  # Default to 'pending'
 
     def __str__(self):
-        return f"{self.user} :- Transaction {self.transaction_id} - {self.amount} {self.currency} - Status: {self.status}"
+        return f"{self.user} :- Transaction {self.transaction_id} - order_id {self.order_id} - {self.amount} {self.currency} - Status: {self.status}"
