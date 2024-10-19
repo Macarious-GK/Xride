@@ -13,6 +13,7 @@ urlpatterns = [
     path('user/trips/', UserListReservationsView.as_view(), name='release_car'),
     path('user/payments/create/', PaymentCreateView.as_view(), name='create-payment'),
     path('user/payments/confirm/', PaymentConfirmation.as_view(), name='confirm-payment'),
+    path('user/payments-HMAC/confirm/', PaymentConfirmationWithHMAC.as_view(), name='confirm-payment-HMAC'),
     # #---------------------------------------------------------------------
     path('eco/', EchoView.as_view(), name='update-temperature'),
 
