@@ -7,16 +7,14 @@
 # EXPOSE 8000 
 # CMD [ "python","manage.py","runserver","0.0.0.0:8000" ] 
 
+FROM python:3.11-alpine
 
-FROM python:3.11-alpine 
-
-ENV PYTHONDONTWRITEBYTECODE=1 
-ENV PYTHONUNBUFFERED=1 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk update && apk add --no-cache \
     gcc \
-    libmysqlclient-dev \
-    pkg-config
+    musl-dev \
+    mariadb-dev \
+    pkgconfig
 
 # Set working directory
 WORKDIR /app
