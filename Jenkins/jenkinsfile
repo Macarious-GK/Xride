@@ -1,0 +1,50 @@
+@Library('Jenkins-Shared-Library') _
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout SCM stage') {
+            steps {
+                // Checkout SCM stage
+                script {
+                    checkout scm   
+                }
+            }
+        }
+
+        stage('Build Image & Scanning') {
+            steps {
+                script {
+                    // Snyk Ligon &&  Test the Docker image with Snyk or Trivy
+                    dir('Xride') {
+                        buildDockerImage('macarious25siv/project:Xride_V0')
+                        // trivyScanning(imageName:'macarious25siv/books:latest')
+                        // snykLogin('Snyk_Token_ID')
+                        // snykTestDockerImage(imageName:'macarious25siv/books:latest')
+
+                    }       
+                }
+            }
+        }
+
+        stage('Push Image ') {
+            steps {
+                script {
+                    // Login to Docker Hub using stored credentials, Then Push Image
+                    dockerHubLogin('Docker_Creds')
+                    pushDockerImage('macarious25siv/project:Xride_V0')
+                }
+            }
+        }
+
+    }
+    
+    post {
+        always {
+            // Clean up the workspace and logout from Docker Hub
+            echo "Cleaning up the workspace and logging out from Docker Hub..."
+            sh 'docker logout'
+            cleanWs()
+        }
+    }
+}
