@@ -82,6 +82,20 @@ class ReserveCarView(APIView):
         if car.reservation_status != 'available':
             return Response({"error": "Car is already reserved or unavailable."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Determine the booking price based on the reservation plan
+        booking_price_field = f"booking_price_{reservation_plan}"
+        booking_price = getattr(car, booking_price_field, None)
+
+        if booking_price is None:
+            return Response({"error": "Invalid reservation plan."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.wallet_balance < booking_price:
+            return Response({"error": "Insufficient account balance."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Deduct the booking price from the user's wallet balance
+        user.wallet_balance -= booking_price
+        user.save(update_fields=['wallet_balance'])
+
         # Create reservation
         reservation = Reservation.objects.create(
             user=user,
@@ -90,7 +104,6 @@ class ReserveCarView(APIView):
             start_time=timezone.now()  # Set start time to the current time
         )
         
-        # Update car reservation status
         car.reservation_status = 'reserved'
         car.save(update_fields=['reservation_status'])
 
