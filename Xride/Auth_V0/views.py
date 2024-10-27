@@ -11,7 +11,7 @@ class ActivateUserView(APIView):
     """
     permission_classes = [AllowAny] 
     def get(self, request, uid, token):
-        activation_url = "http://localhost:8000/auth/users/activation/"
+        activation_url = "https://clinic-app-cjv8.onrender.com/auth/users/activation/"
         data = {
             'uid': uid,
             'token': token}
@@ -44,7 +44,7 @@ class PasswordResetConfirmView(APIView):
             return Response(
                 {"detail": "New passwords do not match."},status=status.HTTP_400_BAD_REQUEST)
         
-        reset_confirm_url = "http://localhost:8000/auth/users/reset_password_confirm/"
+        reset_confirm_url = "https://clinic-app-cjv8.onrender.com/auth/users/reset_password_confirm/"
         data = {
             'uid': uid,
             'token': token,
