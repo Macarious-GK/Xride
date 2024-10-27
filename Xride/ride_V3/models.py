@@ -23,6 +23,10 @@ class XrideUser(AbstractUser):
         blank=True,
         help_text='Specific permissions for this user.'
     )
+    def save(self, *args, **kwargs):
+        if self.username:
+            self.username = self.username.lower()  # Convert to lowercase
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Name: {self.username} Balance: {self.wallet_balance}"

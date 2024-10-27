@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'Auth_V0',
     'ride_V0',
     'ride_V1',
     'ride_V2',
@@ -44,7 +45,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework',
     'corsheaders',
-    # 'djoser',
+    'djoser',
 
 ]
 
@@ -106,6 +107,8 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
+AUTH_USER_MODEL = 'ride_V3.XrideUser'
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -145,25 +148,61 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+#--------------------------------------------------------------------
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'makariousgadelkarim@gmail.com'
+EMAIL_HOST_PASSWORD = 'dikv iciu publ wqjb'
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = 'makariousgadelkarim@gmail.com'
+
 
 from datetime import timedelta
-
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Change to desired lifetime (e.g., 60 minutes)
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Change to desired refresh token lifetime (e.g., 7 days)
-    # Other settings...
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Short-lived access token for security
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Refresh token for longer sessions
+    'AUTH_HEADER_TYPES': ('JWT',),  # Set the auth header type to 'JWT'
 }
 
-AUTH_USER_MODEL = 'ride_V3.XrideUser'
+DJOSER = {
+    'PASSWORD_RESET_CONFIRM_URL': 'auth/password/reset/confirm/{uid}/{token}/',
+    "PASSWORD_RESET_CONFIRM_RETYPE": True,
+    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
+    
+    'ACTIVATION_URL': 'auth/activate/{uid}/{token}/',
 
-HMAC_SECRET = ""
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'SET_PASSWORD_RETYPE': True,
+    
+    'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
+    'SEND_CONFIRMATION_EMAIL': True,
+    'SEND_ACTIVATION_EMAIL': True,
+
+    'SERIALIZERS': {
+        'user_create': 'Auth_V0.serializers.XrideUserSerializer',
+        'user_create_password_retype': 'Auth_V0.serializers.XrideUserSerializer',
+        'user': 'Auth_V0.serializers.CurrentlUserSerializer',
+        'current_user': 'Auth_V0.serializers.CurrentlUserSerializer',
+    },
+     'EMAIL': {
+        'activation': 'Auth_V0.email.ActivationEmail', 
+        'confirmation': 'Auth_V0.email.ConfirmationEmail',
+        'password_reset': 'Auth_V0.email.PasswordResetEmail',
+        'password_changed_confirmation': 'Auth_V0.email.PasswordChangedConfirmationEmail',
+     },
+}
 
 
-# DJOSER={
-#     "USER_ID_FIELD":"username",
-# }
+

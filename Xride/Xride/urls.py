@@ -29,12 +29,13 @@ urlpatterns = [
     path('V1/',include('ride_V1.urls')),
     path('V2/',include('ride_V2.urls')),
     path('V3/',include('ride_V3.urls')),
-    # Token obtain URLs
-    # path('auth/',include('djoser.urls')),
-    # path('auth/token', include('djoser.urls.jwt')),
+    # Djoser & JWT Token obtain URLs
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.jwt')),
+    path('auth/',include('Auth_V0.urls')),
+    # JWT Token URLs
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    # path('paymob/payment-callback/', PaymentCallbackView.as_view(), name='payment-callback'),
 
 
 ]

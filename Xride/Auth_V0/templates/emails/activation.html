@@ -1,0 +1,28 @@
+{% load i18n %}
+
+{% block subject %}
+{% blocktrans %}Account activation on Xride{% endblocktrans %}
+{% endblock subject %}
+
+{% block text_body %}
+{% blocktrans %}You're receiving this email because you need to finish activation process on Xride.{% endblocktrans %}
+
+{% trans "Please click on the following link to activate account:" %}
+{{ protocol }}://{{ domain }}/{{ url|safe }}
+
+{% trans "Thanks for using Xride!" %}
+
+{% blocktrans %}The Xride team{% endblocktrans %}
+{% endblock text_body %}
+
+{% block html_body %}
+<p>{% blocktrans %}You're receiving this email because you need to finish activation process on Xride.{% endblocktrans %}</p>
+
+<p>{% trans "Please click on the following link to activate account:" %}</p>
+<p><a href="{{ protocol }}://{{ domain }}/{{ url|safe }}">{{ protocol }}://{{ domain }}/{{ url|safe }}</a></p>
+
+<p>{% trans "Thanks for using Xride!" %}</p>
+
+<p>{% blocktrans %}The Xride team{% endblocktrans %}</p>
+
+{% endblock html_body %}
