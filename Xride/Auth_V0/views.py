@@ -17,6 +17,7 @@ class ActivateUserView(APIView):
             'uid': uid,
             'token': token}
         try:
+            print(activation_url)
             response = requests.post(activation_url, json=data, timeout=20)
             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
         except requests.exceptions.RequestException as e:
