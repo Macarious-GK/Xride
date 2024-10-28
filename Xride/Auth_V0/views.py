@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 import requests
+from djoser.conf import settings
 
 class ActivateUserView(APIView):
     """
@@ -11,12 +12,12 @@ class ActivateUserView(APIView):
     """
     permission_classes = [AllowAny] 
     def get(self, request, uid, token):
-        activation_url = "https://clinic-app-cjv8.onrender.com/auth/users/activation/"
+        activation_url = f"{settings.EMAIL_FRONTEND_PROTOCOL}://{settings.EMAIL_FRONTEND_DOMAIN}/auth/users/activation/"
         data = {
             'uid': uid,
             'token': token}
         try:
-            response = requests.post(activation_url, json=data, timeout=10)
+            response = requests.post(activation_url, json=data, timeout=20)
             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
         except requests.exceptions.RequestException as e:
             return Response({"detail": "Error activating the user. Please try again later."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -44,7 +45,7 @@ class PasswordResetConfirmView(APIView):
             return Response(
                 {"detail": "New passwords do not match."},status=status.HTTP_400_BAD_REQUEST)
         
-        reset_confirm_url = "https://clinic-app-cjv8.onrender.com/auth/users/reset_password_confirm/"
+        reset_confirm_url = f"{settings.EMAIL_FRONTEND_PROTOCOL}://{settings.EMAIL_FRONTEND_DOMAIN}/auth/users/reset_password_confirm/"
         data = {
             'uid': uid,
             'token': token,
@@ -52,7 +53,7 @@ class PasswordResetConfirmView(APIView):
             're_new_password': re_new_password
         }
         try:
-            response = requests.post(reset_confirm_url, json=data, timeout=10)
+            response = requests.post(reset_confirm_url, json=data, timeout=20)
             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
         except requests.exceptions.RequestException as e:
             print(f"Error: {str(e)}")  # You may want to log this instead of print in production
