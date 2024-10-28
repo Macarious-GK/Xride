@@ -54,7 +54,7 @@ class PasswordResetConfirmView(APIView):
             're_new_password': re_new_password
         }
         try:
-            print(reset_confirm_url)
+            # print(reset_confirm_url)
             response = requests.post(reset_confirm_url, json=data, timeout=20)
             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
         except requests.exceptions.RequestException as e:
