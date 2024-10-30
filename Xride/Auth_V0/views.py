@@ -17,8 +17,9 @@ class ActivateUserView(APIView):
             'uid': uid,
             'token': token}
         try:
-            print(activation_url)
             response = requests.post(activation_url, json=data, timeout=20)
+            print(response)
+            print(response.status_code)
             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
         except requests.exceptions.RequestException as e:
             return Response({"detail": "Error activating the user. Please try again later."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
