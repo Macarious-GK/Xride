@@ -15,8 +15,8 @@ def receive_message(client, userdata, message):
         # Retrieve the Car instance and update temperature
         car1 = Car.objects.get(id=data['car_id'])
         car1.temperature = data['car_temperature']
-        # car1.location_latitude = data['car_location_latitude']
-        # car1.location_longitude = data['car_location_longitude']
+        car1.location_latitude = data['car_location_latitude']
+        car1.location_longitude = data['car_location_longitude']
         car1.save()
         print(f"The temperature inside the car is: {data['car_temperature']}°C.")
     except Car.DoesNotExist:
