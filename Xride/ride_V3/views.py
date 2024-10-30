@@ -93,19 +93,17 @@ class ReserveCarView(APIView):
             return Response({"error": "Insufficient account balance."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Deduct the booking price from the user's wallet balance
-        user.wallet_balance -= booking_price
-        user.save(update_fields=['wallet_balance'])
-
-        # Create reservation
-        reservation = Reservation.objects.create(
-            user=user,
-            car=car,
-            reservation_plan=reservation_plan,
-            start_time=timezone.now()  # Set start time to the current time
-        )
-        
-        car.reservation_status = 'reserved'
-        car.save(update_fields=['reservation_status'])
+        with transaction.atomic():
+            user.wallet_balance -= booking_price
+            user.save(update_fields=['wallet_balance'])
+            reservation = Reservation.objects.create(
+                user=user,
+                car=car,
+                reservation_plan=reservation_plan,
+                start_time=timezone.now()
+            )
+            car.reservation_status = 'reserved'
+            car.save(update_fields=['reservation_status'])
 
         return Response({"message": f"You have successfully reserved {car.car_name}.", "reservation_id": reservation.id}, status=status.HTTP_200_OK)
 
