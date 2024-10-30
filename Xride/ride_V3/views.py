@@ -56,7 +56,7 @@ class AvailableCarsWithinRadiusView(APIView):
         
         nearby_cars = [
             CarSerializer(car).data for car in cars
-            if haversine(user_lon, user_lat,car.location_longitude,car.location_latitude ) <= 2
+            if haversine(user_lon, user_lat,car.location_longitude,car.location_latitude ) <= 1000
         ]
 
         return Response({'nearby_cars': nearby_cars}, status=status.HTTP_200_OK)
