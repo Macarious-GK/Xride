@@ -1,0 +1,128 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Activation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: none;
+        }
+        .success {
+            color: #fff;
+            background-color: #4CAF50;
+        }
+        .error {
+            color: #fff;
+            background-color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Account Activation</h2>
+        <p id="loadingText">Please wait while we activate your account...</p>
+        <div id="responseMessage" class="message"></div>
+    </div>
+
+    <script>
+        async function activateAccount() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const uid = urlParams.get('uid');
+            const token = urlParams.get('token');
+            const activationUrl = `http://localhost:8000/activate-user/${uid}/${token}/`;
+
+            const responseMessage = document.getElementById("responseMessage");
+            const loadingText = document.getElementById("loadingText");
+
+            try {
+                const response = await fetch(activationUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                loadingText.style.display = "none";  // Hide loading text
+                responseMessage.style.display = "block";  // Show response message
+
+                if (response.ok) {
+                    responseMessage.textContent = result.message || "Account activated successfully.";
+                    responseMessage.classList.add("success");
+                } else {
+                    responseMessage.textContent = result.error || "Activation failed. Please try again.";
+                    responseMessage.classList.add("error");
+                }
+            } catch (error) {
+                loadingText.style.display = "none";
+                responseMessage.style.display = "block";
+                responseMessage.textContent = "An error occurred. Please try again later.";
+                responseMessage.classList.add("error");
+            }
+        }
+
+        window.onload = activateAccount;
+    </script>
+</body>
+</html> -->
+
+
+<!-- myapp/templates/activation_response.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Activation</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .container { text-align: center; width: 90%; max-width: 400px; padding: 20px; background-color: #fff; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); border-radius: 8px; }
+        h2 { color: #333; margin-bottom: 15px; }
+        .message { margin-top: 20px; padding: 15px; border-radius: 5px; font-weight: bold; font-size: 1.1em; color: white; }
+        .success { background-color: #4CAF50; }
+        .error { background-color: #F44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Account Activation</h2>
+        <div class="message {{ message_class }}">
+            {{ message }}
+        </div>
+    </div>
+</body>
+</html>

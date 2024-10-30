@@ -6,31 +6,7 @@ from rest_framework import status
 import requests
 from djoser.conf import settings
 
-# class ActivateUserView(APIView):
-#     """
-#     This view handles the user account activation by sending a request 
-#     to Djoser's activation endpoint with the uid and token.
-#     """
-#     permission_classes = [AllowAny] 
-#     def get(self, request, uid, token):
-#         activation_url = f"http://localhost:8000/auth/users/activation/"
-#         data = {
-#             'uid': uid,
-#             'token': token}
-#         try:
-#             response = requests.post(activation_url, json=data, timeout=20)
-#             print(response)
-#             print(response.status_code)
-#             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
-#         except requests.exceptions.RequestException as e:
-#             return Response({"detail": "Error activating the user. Please try again later."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#         if response.status_code == status.HTTP_204_NO_CONTENT:
-#             return Response({"detail": "User activated successfully."},status=status.HTTP_200_OK)
-#         return Response(
-#             {
-#                 'detail': 'Activation failed. Please check the activation link or contact support.',
-#                 'errors': response.json()},status=response.status_code)
-
+from django.template.response import TemplateResponse
 
 
 class ActivateUser(UserViewSet):
@@ -40,28 +16,22 @@ class ActivateUser(UserViewSet):
         
         # Inject uid and token into the serializer's data
         kwargs['data'] = {"uid": self.kwargs['uid'], "token": self.kwargs['token']}
-        
         return serializer_class(*args, **kwargs)
 
     def activation(self, request, uid, token, *args, **kwargs):
         try:
-            # Attempt to activate the user account
             super().activation(request, *args, **kwargs)
-            return Response(
-                {"message": "Account successfully activated. You can now log in."},
-                status=status.HTTP_200_OK
-            )
+            context = {
+                "message": "Account successfully activated. You can now log in.",
+                "message_class": "success"}
+            return TemplateResponse(request, "activation_response.html", context, status=status.HTTP_200_OK)
         except Exception as e:
-            # Return an error response with a user-friendly message
-            return Response(
-                {
-                    "error": "Activation failed. The link might be expired or invalid.",
-                    "detail": str(e),
-                    "suggestion": "Please request a new activation link or contact support if the problem persists."
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+            context = {
+                "message": "Activation failed. The link might be expired or invalid.",
+                "message_class": "error",
+                "detail": str(e),
+                "suggestion": "Please request a new activation link or contact support if the problem persists."}
+            return TemplateResponse(request, "activation_response.html", context, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
     """
@@ -102,3 +72,27 @@ class PasswordResetConfirmView(APIView):
                     'detail': 'Password reset failed. Please check the reset link or contact support.',
                     'errors': response.json()  # Include Djoser response errors if available
                 },status=response.status_code)
+# class ActivateUserView(APIView):
+#     """
+#     This view handles the user account activation by sending a request 
+#     to Djoser's activation endpoint with the uid and token.
+#     """
+#     permission_classes = [AllowAny] 
+#     def get(self, request, uid, token):
+#         activation_url = f"http://localhost:8000/auth/users/activation/"
+#         data = {
+#             'uid': uid,
+#             'token': token}
+#         try:
+#             response = requests.post(activation_url, json=data, timeout=20)
+#             print(response)
+#             print(response.status_code)
+#             response.raise_for_status()  # Raises an exception for 4xx or 5xx HTTP errors
+#         except requests.exceptions.RequestException as e:
+#             return Response({"detail": "Error activating the user. Please try again later."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         if response.status_code == status.HTTP_204_NO_CONTENT:
+#             return Response({"detail": "User activated successfully."},status=status.HTTP_200_OK)
+#         return Response(
+#             {
+#                 'detail': 'Activation failed. Please check the activation link or contact support.',
+#                 'errors': response.json()},status=response.status_code)
