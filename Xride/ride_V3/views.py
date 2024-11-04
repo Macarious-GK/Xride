@@ -3,7 +3,7 @@ import hmac
 from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.db.models import F
 from rest_framework import generics
@@ -183,6 +183,7 @@ class DoorStatusUpdateView(APIView):
 
 class EchoView(APIView):
     """Echoes back the POST request body as JSON."""
+    permission_classes = [AllowAny]
     
     def post(self, request):
         # Get the request data
@@ -207,7 +208,7 @@ class EchoView(APIView):
         print("concatenated_string",concatenated_string)
 
         # Calculate the HMAC using SHA512 and your HMAC secret
-        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+        secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
         calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
 
         print("calculated_hmac",calculated_hmac)
@@ -334,6 +335,7 @@ class PaymentConfirmation(APIView):
         return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
 
 class PaymentConfirmationWithHMAC(APIView):
+    permission_classes = [AllowAny]
     secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
     hmac_keys = [
         'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
