@@ -334,7 +334,7 @@ class PaymentConfirmation(APIView):
         return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
 
 class PaymentConfirmationWithHMAC(APIView):
-    secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+    secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
     hmac_keys = [
         'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
         'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
