@@ -406,10 +406,20 @@ class PaymentConfirmationWithHMAC(APIView):
         if not self.validate_payment_amount_currency(payment, transaction_data['amount'], transaction_data['currency']):
             return Response({"error": "Invalid transaction data."}, status=status.HTTP_400_BAD_REQUEST)
 
-        self.update_payment_record(payment, transaction_data)
-        self.update_user_wallet_balance(payment.user, transaction_data['amount'])
+        try:
+        # Wrap both operations inside an atomic transaction
+            with transaction.atomic():
+                # First operation: Update payment record
+                self.update_payment_record(payment, transaction_data)
 
-        return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
+                # Second operation: Update user wallet balance
+                self.update_user_wallet_balance(payment.user, transaction_data['amount'])
+
+        except Exception as e:
+            # If an error occurs, the transaction is automatically rolled back
+            print(f"An error occurred: {e}")
+            raise e  # Optionally re-raise the exception to handle it elsewhere
+            return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
 
     def validate_hmac(self, data, received_hmac):
         concatenated_string = self.generate_hmac_string(data, self.hmac_keys)
