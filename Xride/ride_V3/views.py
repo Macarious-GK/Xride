@@ -3,7 +3,7 @@ import hmac
 from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import IsAuthenticated, AllowAny, BasePermission
 from rest_framework import status
 from django.db.models import F
 from rest_framework import generics
@@ -216,10 +216,63 @@ class DoorStatusUpdateView(APIView):
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': 'An error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-# # Payment views
+        
+
+class EchoView(APIView):
+    """Echoes back the POST request body as JSON."""
+    
+    def post(self, request):
+        # Get the request data
+        data = request.data
+        if not data:
+            return Response({'error': "nothing"}, status=status.HTTP_200_OK)
+        
+        data = data["obj"]
+        received_hmac = request.query_params.get('hmac')
+        
+         # Define the order of keys for HMAC calculation
+        hmac_keys = [
+            'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
+            'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
+            'is_voided', 'order.id', 'owner', 'pending', 'source_data.pan', 'source_data.sub_type',
+            'source_data.type', 'success'
+        ]
+
+        # Sort the data by key and concatenate the values in the specified order
+        concatenated_string = self.generate_hmac_string(data, hmac_keys)
+
+        print("concatenated_string",concatenated_string)
+
+        # Calculate the HMAC using SHA512 and your HMAC secret
+        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+        calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
+
+        print("calculated_hmac",calculated_hmac)
+        print("received_hmac",received_hmac)
+        # Compare the calculated HMAC with the received HMAC
+        if calculated_hmac != received_hmac:
+            return Response({'error': 'Invalid HMAC'}, status=status.HTTP_403_FORBIDDEN)
+
+        print("HMAC is valid")
+        # Return the data as the response
+        return Response(data, status=status.HTTP_200_OK)
+    
+    def get_nested_value(self, data, key):
+        keys = key.split('.')
+        for k in keys:
+            data = data.get(k, {})
+        return data
+    
+    def generate_hmac_string(self, data, keys):
+        hmac_string = ''
+        for key in keys:
+            value = self.get_nested_value(data, key)
+            if value in (True, False):
+                value = str(value).lower()
+            hmac_string += str(value)
+        return hmac_string
+
 class PaymentCreateView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -319,8 +372,8 @@ class PaymentConfirmation(APIView):
         return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
 
 class PaymentConfirmationWithHMAC(APIView):
-    permission_classes = [IsAuthenticated]
-    secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+    permission_classes = [AllowAny]
+    secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
     hmac_keys = [
         'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
         'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
@@ -421,101 +474,3 @@ class PaymentConfirmationWithHMAC(APIView):
             hmac_string += value
         return hmac_string
     
-class EchoView(APIView):
-    """Echoes back the POST request body as JSON."""
-    
-    def post(self, request):
-        # Get the request data
-        data = request.data
-        if not data:
-            return Response({'error': "nothing"}, status=status.HTTP_200_OK)
-        
-        data = data["obj"]
-        received_hmac = request.query_params.get('hmac')
-        
-         # Define the order of keys for HMAC calculation
-        hmac_keys = [
-            'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
-            'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
-            'is_voided', 'order.id', 'owner', 'pending', 'source_data.pan', 'source_data.sub_type',
-            'source_data.type', 'success'
-        ]
-
-        # Sort the data by key and concatenate the values in the specified order
-        concatenated_string = self.generate_hmac_string(data, hmac_keys)
-
-        print("concatenated_string",concatenated_string)
-
-        # Calculate the HMAC using SHA512 and your HMAC secret
-        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
-        calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
-
-        print("calculated_hmac",calculated_hmac)
-        print("received_hmac",received_hmac)
-        # Compare the calculated HMAC with the received HMAC
-        if calculated_hmac != received_hmac:
-            return Response({'error': 'Invalid HMAC'}, status=status.HTTP_403_FORBIDDEN)
-
-        print("HMAC is valid")
-        # Return the data as the response
-        return Response(data, status=status.HTTP_200_OK)
-    
-    def get_nested_value(self, data, key):
-        keys = key.split('.')
-        for k in keys:
-            data = data.get(k, {})
-        return data
-    
-    def generate_hmac_string(self, data, keys):
-        hmac_string = ''
-        for key in keys:
-            value = self.get_nested_value(data, key)
-            if value in (True, False):
-                value = str(value).lower()
-            hmac_string += str(value)
-        return hmac_string
-# class ReserveCarView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request, car_id):
-#         user = request.user
-#         reservation_plan = request.data.get('reservation_plan')  # Expecting '2H', '6H', or '12H'
-
-#         # Check if the car exists
-#         car = Car.objects.filter(id=car_id).first()
-#         if not car:
-#             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#         # Check if the user has an active reservation
-#         active_reservation = Reservation.objects.filter(user=user, status='active').first()
-#         if active_reservation:
-#             return Response({"error": "You already have an active reservation."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Check car availability
-#         if car.reservation_status != 'available':
-#             return Response({"error": "Car is already reserved or unavailable."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Determine the booking price based on the reservation plan
-#         booking_price_field = f"booking_price_{reservation_plan}"
-#         booking_price = getattr(car, booking_price_field, None)
-
-#         if booking_price is None:
-#             return Response({"error": "Invalid reservation plan."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         if user.wallet_balance < booking_price:
-#             return Response({"error": "Insufficient account balance."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Deduct the booking price from the user's wallet balance
-#         with transaction.atomic():
-#             user.wallet_balance -= booking_price
-#             user.save(update_fields=['wallet_balance'])
-#             reservation = Reservation.objects.create(
-#                 user=user,
-#                 car=car,
-#                 reservation_plan=reservation_plan,
-#                 start_time=timezone.now()
-#             )
-#             car.reservation_status = 'reserved'
-#             car.save(update_fields=['reservation_status'])
-
-#         return Response({"message": f"You have successfully reserved {car.car_model.model_name}.", "reservation_id": reservation.id}, status=status.HTTP_200_OK)

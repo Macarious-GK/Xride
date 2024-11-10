@@ -200,7 +200,7 @@ DEFAULT_FROM_EMAIL = 'makariousgadelkarim@gmail.com'
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=200),  # Short-lived access token for security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Short-lived access token for security
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Refresh token for longer sessions
     'AUTH_HEADER_TYPES': ('JWT',),  # Set the auth header type to 'JWT'
 }
