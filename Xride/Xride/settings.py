@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'djoser',
+    'storages',
 
 ]
 
@@ -152,8 +153,31 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 #--------------------------------------------------------------------
+
+
+# AWS_ACCESS_KEY_ID = ''
+# AWS_SECRET_ACCESS_KEY = ''
+# AWS_STORAGE_BUCKET_NAME = ''
+# AWS_S3_CUSTOM_DOMAIN = '%s.s3.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
+# AWS_S3_REGION_NAME = 'us-east-2'
+# AWS_S3_SIGNATURE_NAME = 's3v4',
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL =  None
+# AWS_S3_VERIFY = True
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+# MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}amazonaws.com/'
+# STORAGES = {
+#     'default': {
+#         'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
+#     },
+    
+#     'staticfiles': {
+#         'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
+#     }
+# }
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -176,7 +200,7 @@ DEFAULT_FROM_EMAIL = 'makariousgadelkarim@gmail.com'
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Short-lived access token for security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=200),  # Short-lived access token for security
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Refresh token for longer sessions
     'AUTH_HEADER_TYPES': ('JWT',),  # Set the auth header type to 'JWT'
 }

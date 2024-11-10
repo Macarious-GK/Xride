@@ -3,7 +3,7 @@ import hmac
 from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework import status
 from django.db.models import F
 from rest_framework import generics
@@ -14,7 +14,7 @@ from math import radians, cos, sin, asin, sqrt
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-
+from .mqtt_subscriber_cloud import publish_car_door_state
 
 def calculate_duration_in_hours(start_time: datetime, end_time: datetime) -> float:
     duration = end_time - start_time  # Calculate duration as a timedelta
@@ -32,7 +32,7 @@ def haversine(lon1, lat1, lon2, lat2):
 
 class UserDetailView(generics.RetrieveAPIView):
     queryset = XrideUser.objects.all()
-    serializer_class = XrideUserSerializer
+    serializer_class = CurrentlUserSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
@@ -67,11 +67,22 @@ class ReserveCarView(APIView):
     def post(self, request, car_id):
         user = request.user
         reservation_plan = request.data.get('reservation_plan')  # Expecting '2H', '6H', or '12H'
+        user_lat = request.data.get('location_latitude')
+        user_lon = request.data.get('location_longitude')
+
+        if not user_lat or not user_lon:
+            return Response({"error": "User location is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the car exists
         car = Car.objects.filter(id=car_id).first()
         if not car:
             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the user is within 50 meters of the car
+        distance = haversine(float(user_lon), float(user_lat), car.location_longitude, car.location_latitude)
+        print(distance)
+        if distance > .5:
+            return Response({"error": "You are too far from the car to reserve it."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the user has an active reservation
         active_reservation = Reservation.objects.filter(user=user, status='active').first()
@@ -92,7 +103,7 @@ class ReserveCarView(APIView):
         if user.wallet_balance < booking_price:
             return Response({"error": "Insufficient account balance."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Deduct the booking price from the user's wallet balance
+        # Deduct the booking price from the user's wallet balance and create reservation
         with transaction.atomic():
             user.wallet_balance -= booking_price
             user.save(update_fields=['wallet_balance'])
@@ -105,8 +116,11 @@ class ReserveCarView(APIView):
             car.reservation_status = 'reserved'
             car.save(update_fields=['reservation_status'])
 
-        return Response({"message": f"You have successfully reserved {car.car_name}.", "reservation_id": reservation.id}, status=status.HTTP_200_OK)
-
+        return Response({
+            "message": f"You have successfully reserved {car.car_model.model_name}.",
+            "reservation_id": reservation.id
+        }, status=status.HTTP_200_OK)
+    
 class ReleaseCarView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -126,115 +140,86 @@ class ReleaseCarView(APIView):
         # Set the reservation status to completed
         reservation.status = 'completed'
         reservation.end_time = timezone.now()  # Set the end time to now
-        reservation.duration = calculate_duration_in_hours(reservation.start_time, reservation.end_time)
+        reservation.duration = self.calculate_duration_in_hours(reservation.start_time, reservation.end_time)
         reservation.save()
+        # Create a record in ReservationHistory
+        reservation_history = ReservationHistory.objects.create(
+           reservation_ID = reservation.id,
+            user=reservation.user,
+            car=reservation.car,
+            start_time=reservation.start_time,
+            end_time=reservation.end_time,
+            reservation_plan=reservation.reservation_plan,
+            status='completed',  # The status is completed for history
+            duration=reservation.duration
+        )
+        
+
+        # Delete the reservation after moving it to history
+        reservation.delete()
 
         # Set the car status to available
         car.reservation_status = 'available'
-        car.save(update_fields=['reservation_status'])
+        car.door_status = 'locked'  # Lock the door when releasing the car
+        car.save(update_fields=['reservation_status','door_status'])
 
         return Response({
-            "message": f"You have successfully released {car.car_name}.",
-            "duration_hours": reservation.duration  # Return the duration
+            "message": f"You have successfully released {car.car_model.model_name}.",
+            "duration_hours": reservation_history.duration  # Return the duration from the history
         }, status=status.HTTP_200_OK)
+
+    def calculate_duration_in_hours(self, start_time, end_time):
+        duration = end_time - start_time
+        return duration.total_seconds() / 3600  # Convert seconds to hours
 
 class UserListReservationsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         user = request.user
-        reservations = Reservation.objects.filter(user=user)
+        reservations = ReservationHistory.objects.filter(user=user)
         serializer = ReservationSerializer(reservations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+# Car Status views
+class HasActiveReservation(BasePermission):
+    def has_permission(self, request, view):
+        car_id = view.kwargs.get('car_id')
+        return Reservation.objects.filter(user=request.user, car_id=car_id, status='active').exists()
+
 class CarStatusView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasActiveReservation]
+
     def get(self, request, car_id):
         try:
             car = Car.objects.get(pk=car_id)
-            active_reservation = Reservation.objects.filter(user=request.user, car=car, status='active').first()
-            if not active_reservation:
-                return Response({'error': 'You do not have an active reservation for this car'}, status=status.HTTP_403_FORBIDDEN)
             serializer = CarSerializer(car)
             return Response(serializer.data)
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'An error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DoorStatusUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasActiveReservation]
 
+    @transaction.atomic
     def post(self, request, car_id):
         try:
-            car = Car.objects.get(pk=car_id)
-            active_reservation = Reservation.objects.filter(user=request.user, car=car, status='active').first()
-            if not active_reservation:
-                return Response({'error': 'You do not have an active reservation for this car'}, status=status.HTTP_403_FORBIDDEN)
-            if car.door_status == 'unlocked':
-                car.door_status = 'locked'
-                status_message = 'Door locked successfully.'
-            else:
-                car.door_status = 'unlocked'
-                status_message = 'Door unlocked successfully.'
+            car = Car.objects.select_for_update().get(pk=car_id)
+            # Toggle door status
+            new_status = 'locked' if car.door_status == 'unlocked' else 'unlocked'
+            status_message = f"Door {new_status} successfully."
+            car.door_status = new_status
+
+            publish_car_door_state(car_id, car.door_status)  # Publish updated status
             car.save()  # Save the updated status
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'An error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
-
-class EchoView(APIView):
-    """Echoes back the POST request body as JSON."""
-    
-    def post(self, request):
-        # Get the request data
-        data = request.data
-        if not data:
-            return Response({'error': "nothing"}, status=status.HTTP_200_OK)
-        
-        data = data["obj"]
-        received_hmac = request.query_params.get('hmac')
-        
-         # Define the order of keys for HMAC calculation
-        hmac_keys = [
-            'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
-            'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
-            'is_voided', 'order.id', 'owner', 'pending', 'source_data.pan', 'source_data.sub_type',
-            'source_data.type', 'success'
-        ]
-
-        # Sort the data by key and concatenate the values in the specified order
-        concatenated_string = self.generate_hmac_string(data, hmac_keys)
-
-        print("concatenated_string",concatenated_string)
-
-        # Calculate the HMAC using SHA512 and your HMAC secret
-        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
-        calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
-
-        print("calculated_hmac",calculated_hmac)
-        print("received_hmac",received_hmac)
-        # Compare the calculated HMAC with the received HMAC
-        if calculated_hmac != received_hmac:
-            return Response({'error': 'Invalid HMAC'}, status=status.HTTP_403_FORBIDDEN)
-
-        print("HMAC is valid")
-        # Return the data as the response
-        return Response(data, status=status.HTTP_200_OK)
-    
-    def get_nested_value(self, data, key):
-        keys = key.split('.')
-        for k in keys:
-            data = data.get(k, {})
-        return data
-    
-    def generate_hmac_string(self, data, keys):
-        hmac_string = ''
-        for key in keys:
-            value = self.get_nested_value(data, key)
-            if value in (True, False):
-                value = str(value).lower()
-            hmac_string += str(value)
-        return hmac_string
-
+# # Payment views
 class PaymentCreateView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -435,3 +420,102 @@ class PaymentConfirmationWithHMAC(APIView):
             value = str(value).lower() if isinstance(value, bool) else str(value)
             hmac_string += value
         return hmac_string
+    
+class EchoView(APIView):
+    """Echoes back the POST request body as JSON."""
+    
+    def post(self, request):
+        # Get the request data
+        data = request.data
+        if not data:
+            return Response({'error': "nothing"}, status=status.HTTP_200_OK)
+        
+        data = data["obj"]
+        received_hmac = request.query_params.get('hmac')
+        
+         # Define the order of keys for HMAC calculation
+        hmac_keys = [
+            'amount_cents', 'created_at', 'currency', 'error_occured', 'has_parent_transaction', 'id',
+            'integration_id', 'is_3d_secure', 'is_auth', 'is_capture', 'is_refunded', 'is_standalone_payment',
+            'is_voided', 'order.id', 'owner', 'pending', 'source_data.pan', 'source_data.sub_type',
+            'source_data.type', 'success'
+        ]
+
+        # Sort the data by key and concatenate the values in the specified order
+        concatenated_string = self.generate_hmac_string(data, hmac_keys)
+
+        print("concatenated_string",concatenated_string)
+
+        # Calculate the HMAC using SHA512 and your HMAC secret
+        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+        calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
+
+        print("calculated_hmac",calculated_hmac)
+        print("received_hmac",received_hmac)
+        # Compare the calculated HMAC with the received HMAC
+        if calculated_hmac != received_hmac:
+            return Response({'error': 'Invalid HMAC'}, status=status.HTTP_403_FORBIDDEN)
+
+        print("HMAC is valid")
+        # Return the data as the response
+        return Response(data, status=status.HTTP_200_OK)
+    
+    def get_nested_value(self, data, key):
+        keys = key.split('.')
+        for k in keys:
+            data = data.get(k, {})
+        return data
+    
+    def generate_hmac_string(self, data, keys):
+        hmac_string = ''
+        for key in keys:
+            value = self.get_nested_value(data, key)
+            if value in (True, False):
+                value = str(value).lower()
+            hmac_string += str(value)
+        return hmac_string
+# class ReserveCarView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, car_id):
+#         user = request.user
+#         reservation_plan = request.data.get('reservation_plan')  # Expecting '2H', '6H', or '12H'
+
+#         # Check if the car exists
+#         car = Car.objects.filter(id=car_id).first()
+#         if not car:
+#             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Check if the user has an active reservation
+#         active_reservation = Reservation.objects.filter(user=user, status='active').first()
+#         if active_reservation:
+#             return Response({"error": "You already have an active reservation."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Check car availability
+#         if car.reservation_status != 'available':
+#             return Response({"error": "Car is already reserved or unavailable."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Determine the booking price based on the reservation plan
+#         booking_price_field = f"booking_price_{reservation_plan}"
+#         booking_price = getattr(car, booking_price_field, None)
+
+#         if booking_price is None:
+#             return Response({"error": "Invalid reservation plan."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         if user.wallet_balance < booking_price:
+#             return Response({"error": "Insufficient account balance."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Deduct the booking price from the user's wallet balance
+#         with transaction.atomic():
+#             user.wallet_balance -= booking_price
+#             user.save(update_fields=['wallet_balance'])
+#             reservation = Reservation.objects.create(
+#                 user=user,
+#                 car=car,
+#                 reservation_plan=reservation_plan,
+#                 start_time=timezone.now()
+#             )
+#             car.reservation_status = 'reserved'
+#             car.save(update_fields=['reservation_status'])
+
+#         return Response({"message": f"You have successfully reserved {car.car_model.model_name}.", "reservation_id": reservation.id}, status=status.HTTP_200_OK)

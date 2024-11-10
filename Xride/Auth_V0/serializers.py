@@ -52,9 +52,18 @@ class XrideUserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
-
 class CurrentlUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = XrideUser
-        fields = ['username', 'email', 'first_name', 'last_name', 'wallet_balance', 'phone_number', 'address', 'national_id']
+        fields = ['username', 'email', 'first_name', 'last_name', 'wallet_balance', 'phone_number', 'address', 'national_id', 'personal_photo', 'licence_photo', 'national_id_photo']
+
+class UserPhotoUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = XrideUser
+        fields = ['personal_photo', 'licence_photo', 'national_id_photo']
+        
+    def validate(self, data):
+        if not any(field in data for field in ['personal_photo', 'licence_photo', 'national_id_photo']):
+            raise serializers.ValidationError("No photo type specified.")
+        return data
+
