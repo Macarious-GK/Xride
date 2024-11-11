@@ -416,12 +416,12 @@ class PaymentConfirmationWithHMAC(APIView):
 
                 # Second operation: Update user wallet balance
                 self.update_user_wallet_balance(payment.user, transaction_data['amount'])
+                return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
 
         except Exception as e:
             # If an error occurs, the transaction is automatically rolled back
             print(f"An error occurred: {e}")
-            raise e  # Optionally re-raise the exception to handle it elsewhere
-            return Response({"message": "Payment record confirmed."}, status=status.HTTP_200_OK)
+            return Response({"message": "Payment record confirmed."}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
     def validate_hmac(self, data, received_hmac):
         concatenated_string = self.generate_hmac_string(data, self.hmac_keys)
