@@ -433,7 +433,7 @@ class PaymentConfirmationWithHMAC(APIView):
     def extract_transaction_data(self, obj):
         return {
             'transaction_id': obj.get('id'),
-            'order_id':  obj.get('data', {}).get('orderToken'),
+            'order_id':  obj.get('payment_key_claims').get('billing_data').get('postal_code'),
             'collector': obj.get('order', {}).get('merchant', {}).get('company_name'),
             'card_type': obj.get('source_data', {}).get('sub_type'),
             'card_last_four': obj.get('source_data', {}).get('pan', '')[-4:],
