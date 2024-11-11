@@ -225,6 +225,7 @@ class EchoView(APIView):
     def post(self, request):
         # Get the request data
         data = request.data
+        print(data)
         if not data:
             return Response({'error': "nothing"}, status=status.HTTP_200_OK)
         
@@ -245,7 +246,7 @@ class EchoView(APIView):
         print("concatenated_string",concatenated_string)
 
         # Calculate the HMAC using SHA512 and your HMAC secret
-        secret = "04DC1A9490B8CC2094C011FC055ADCDB"
+        secret = "D229E5A90A84B96B8ACAAD3ADF2BE93C"
         calculated_hmac = hmac.new(secret.encode(), concatenated_string.encode(), hashlib.sha512).hexdigest()
 
         print("calculated_hmac",calculated_hmac)
