@@ -14,7 +14,7 @@ from math import radians, cos, sin, asin, sqrt
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from .mqtt_subscriber_cloud import publish_car_door_state
+# from .mqtt_subscriber_cloud import publish_car_door_state
 
 def calculate_duration_in_hours(start_time: datetime, end_time: datetime) -> float:
     duration = end_time - start_time  # Calculate duration as a timedelta
