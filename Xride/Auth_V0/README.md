@@ -47,7 +47,7 @@ POST /users/
 - The server send link activation email and success activation email
 
 ## API to Retrive user 
-POST-PUT-DELETE /users/me/
+GET-PUT-DELETE /users/me/
 
 Header ["Authorization": "JWT Token"]
 - Use this endpoint to retrieve/update
