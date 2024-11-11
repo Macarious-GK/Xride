@@ -221,7 +221,7 @@ class DoorStatusUpdateView(APIView):
 
 class EchoView(APIView):
     """Echoes back the POST request body as JSON."""
-    
+    permission_classes = [AllowAny]
     def post(self, request):
         # Get the request data
         data = request.data
@@ -432,7 +432,7 @@ class PaymentConfirmationWithHMAC(APIView):
     def extract_transaction_data(self, obj):
         return {
             'transaction_id': obj.get('id'),
-            'order_id': obj.get('order', {}).get('id'),
+            'order_id':  obj.get('data', {}).get('orderToken'),
             'collector': obj.get('order', {}).get('merchant', {}).get('company_name'),
             'card_type': obj.get('source_data', {}).get('sub_type'),
             'card_last_four': obj.get('source_data', {}).get('pan', '')[-4:],
