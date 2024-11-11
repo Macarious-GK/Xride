@@ -211,7 +211,7 @@ class DoorStatusUpdateView(APIView):
             status_message = f"Door {new_status} successfully."
             car.door_status = new_status
 
-            publish_car_door_state(car_id, car.door_status)  # Publish updated status
+            # publish_car_door_state(car_id, car.door_status)  # Publish updated status
             car.save()  # Save the updated status
             return Response({'status': status_message})
         except Car.DoesNotExist:
