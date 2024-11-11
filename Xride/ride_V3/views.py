@@ -285,13 +285,13 @@ class PaymentCreateView(APIView):
         
         # Check if amount is provided
         if not amount or not order_id:
-            return Response({"error": "Amount and Order_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Amount and Order_id is required."}, status=status.HTTP_204_NO_CONTENT)
 
         # Check if the user has any pending payments
         pending_payment = Payment.objects.filter(user=user, status='pending').first()
         payment_order_exist = Payment.objects.filter(user=user, order_id=order_id).first()
         if pending_payment or payment_order_exist:
-            return Response({"error": "You already have this order or a pending Payment"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "You already have this order or a pending Payment"}, status=status.HTTP_204_NO_CONTENT)
 
         # Prepare data for the serializer
         data = {
