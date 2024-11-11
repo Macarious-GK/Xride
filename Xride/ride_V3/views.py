@@ -288,7 +288,8 @@ class PaymentCreateView(APIView):
             return Response({"error": "Amount and Order_id is required."}, status=status.HTTP_204_NO_CONTENT)
 
         # Check if the user has any pending payments
-        pending_payment = Payment.objects.filter(user=user, status='pending').first()
+        # pending_payment = Payment.objects.filter(user=user, status='pending').first()
+        pending_payment = False
         payment_order_exist = Payment.objects.filter(user=user, order_id=order_id).first()
         if pending_payment or payment_order_exist:
             return Response({"error": "You already have this order or a pending Payment"}, status=status.HTTP_204_NO_CONTENT)
