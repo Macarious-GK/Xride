@@ -7,6 +7,40 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from .utils import Manage_S3_Media  
 
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth import get_user_model
+from rest_framework.exceptions import AuthenticationFailed
+
+class CustomTokenCreateView(TokenObtainPairView):
+    """
+    Custom view to handle the token creation response.
+    If the user is registered but not activated, return a custom error message.
+    If the user is not registered, return a "Wrong username or password" error message.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Get the username and password from the request data
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Check if the user exists
+        try:
+            user = get_user_model().objects.get(username=username)
+        except get_user_model().DoesNotExist:
+            # If user does not exist, return an error indicating incorrect username or password
+            raise AuthenticationFailed("Wrong username or password")
+
+        # Check if the user is active
+        if not user.is_active:
+            # If the user is not activated, return a custom error message
+            return Response(
+                {"detail": "Account is not activated. Please check your email for activation."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # If the user exists and is active, proceed with the normal token creation process
+        return super().post(request, *args, **kwargs)
+
 class ActivateUser(UserViewSet):
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
