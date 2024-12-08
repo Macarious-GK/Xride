@@ -191,11 +191,11 @@ REST_FRAMEWORK = {
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'makariousgadelkarim@gmail.com'
-EMAIL_HOST_PASSWORD = 'dikv iciu publ wqjb'
+EMAIL_HOST_USER = 'xride.tech.team@gmail.com'
+EMAIL_HOST_PASSWORD = 'scql qtzl oypu dhej'
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-DEFAULT_FROM_EMAIL = 'makariousgadelkarim@gmail.com'
+DEFAULT_FROM_EMAIL = 'xride.tech.team@gmail.com'
 
 
 from datetime import timedelta
