@@ -16,6 +16,12 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 # from .mqtt_subscriber_cloud import publish_car_door_state
 
+plans_map = {
+    "2H": 2,
+    "6H": 6,
+    "12H": 12,
+}
+
 def calculate_duration_in_hours(start_time: datetime, end_time: datetime) -> float:
     duration = end_time - start_time  # Calculate duration as a timedelta
     duration_in_hours = duration.total_seconds() / 3600  # Convert seconds to hours
@@ -53,7 +59,7 @@ class CheckActiveReservationView(APIView):
                 'car_plate': active_reservation.car.car_plate,
                 'reservation_plan': active_reservation.reservation_plan,
                 'start_time': active_reservation.start_time,
-                'end_time': active_reservation.end_time,
+                'end_time': active_reservation.start_time + timezone.timedelta(hours=plans_map[active_reservation.reservation_plan]),
                 'status': active_reservation.status,
             }
             return Response(data, status=status.HTTP_200_OK)
@@ -137,12 +143,6 @@ class ReserveCarView(APIView):
             )
             car.reservation_status = 'reserved'
             car.save(update_fields=['reservation_status'])
-
-        plans_map = {
-            "2H": 2,
-            "6H": 6,
-            "12H": 12,
-        }
 
         return Response({
             "message": f"You have successfully reserved {car.car_model.model_name}.",
