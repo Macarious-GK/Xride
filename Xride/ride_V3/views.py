@@ -37,6 +37,28 @@ class UserDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user  # Return the current authenticated user
+    
+class CheckActiveReservationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        active_reservation = Reservation.objects.filter(user=request.user, status='active').first()
+        
+        if active_reservation:
+            data = {
+                'has_active_reservation': True,
+                'reservation_id': active_reservation.id,
+                'car_id': active_reservation.car.id,
+                'car_model': active_reservation.car.car_model.model_name,
+                'car_plate': active_reservation.car.car_plate,
+                'reservation_plan': active_reservation.reservation_plan,
+                'start_time': active_reservation.start_time,
+                'end_time': active_reservation.end_time,
+                'status': active_reservation.status,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response({'has_active_reservation': False}, status=status.HTTP_200_OK)
 
 class AvailableCarsWithinRadiusView(APIView):
     permission_classes = [IsAuthenticated]
