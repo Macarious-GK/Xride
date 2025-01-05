@@ -138,9 +138,21 @@ class ReserveCarView(APIView):
             car.reservation_status = 'reserved'
             car.save(update_fields=['reservation_status'])
 
+        plans_map = {
+            "2H": 2,
+            "6H": 6,
+            "12H": 12,
+        }
+
         return Response({
             "message": f"You have successfully reserved {car.car_model.model_name}.",
-            "reservation_id": reservation.id
+            "reservation_id": reservation.id,
+            "car_id": car.id,
+            "car_model": car.car_model.model_name,
+            "car_plate": car.car_plate,
+            'reservation_plan': reservation_plan,
+            'start_time': reservation.start_time,
+            'end_time': reservation.start_time + timezone.timedelta(hours=plans_map[reservation_plan]),
         }, status=status.HTTP_200_OK)
     
 class ReleaseCarView(APIView):
