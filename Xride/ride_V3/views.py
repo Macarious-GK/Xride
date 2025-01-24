@@ -16,6 +16,12 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 # from .mqtt_subscriber_cloud import publish_car_door_state
 
+plans_map = {
+    "2H": 2,
+    "6H": 6,
+    "12H": 12,
+}
+
 def calculate_duration_in_hours(start_time: datetime, end_time: datetime) -> float:
     duration = end_time - start_time  # Calculate duration as a timedelta
     duration_in_hours = duration.total_seconds() / 3600  # Convert seconds to hours
@@ -37,6 +43,28 @@ class UserDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user  # Return the current authenticated user
+    
+class CheckActiveReservationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        active_reservation = Reservation.objects.filter(user=request.user, status='active').first()
+        
+        if active_reservation:
+            data = {
+                'has_active_reservation': True,
+                'reservation_id': active_reservation.id,
+                'car_id': active_reservation.car.id,
+                'car_model': active_reservation.car.car_model.model_name,
+                'car_plate': active_reservation.car.car_plate,
+                'reservation_plan': active_reservation.reservation_plan,
+                'start_time': active_reservation.start_time,
+                'end_time': active_reservation.start_time + timezone.timedelta(hours=plans_map[active_reservation.reservation_plan]),
+                'status': active_reservation.status,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response({'has_active_reservation': False}, status=status.HTTP_200_OK)
 
 class AvailableCarsWithinRadiusView(APIView):
     permission_classes = [IsAuthenticated]
@@ -118,7 +146,13 @@ class ReserveCarView(APIView):
 
         return Response({
             "message": f"You have successfully reserved {car.car_model.model_name}.",
-            "reservation_id": reservation.id
+            "reservation_id": reservation.id,
+            "car_id": car.id,
+            "car_model": car.car_model.model_name,
+            "car_plate": car.car_plate,
+            'reservation_plan': reservation_plan,
+            'start_time': reservation.start_time,
+            'end_time': reservation.start_time + timezone.timedelta(hours=plans_map[reservation_plan]),
         }, status=status.HTTP_200_OK)
     
 class ReleaseCarView(APIView):
