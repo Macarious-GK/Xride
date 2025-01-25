@@ -37,7 +37,7 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 class UserDetailView(generics.RetrieveAPIView):
-    queryset = XrideUser.objects.all()
+    queryset = User.objects.all()
     serializer_class = CurrentlUserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -146,13 +146,7 @@ class ReserveCarView(APIView):
 
         return Response({
             "message": f"You have successfully reserved {car.car_model.model_name}.",
-            "reservation_id": reservation.id,
-            "car_id": car.id,
-            "car_model": car.car_model.model_name,
-            "car_plate": car.car_plate,
-            'reservation_plan': reservation_plan,
-            'start_time': reservation.start_time,
-            'end_time': reservation.start_time + timezone.timedelta(hours=plans_map[reservation_plan]),
+            "reservation_id": reservation.id
         }, status=status.HTTP_200_OK)
     
 class ReleaseCarView(APIView):
@@ -251,8 +245,6 @@ class DoorStatusUpdateView(APIView):
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        
-
 class EchoView(APIView):
     """Echoes back the POST request body as JSON."""
     permission_classes = [AllowAny]

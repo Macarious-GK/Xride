@@ -5,7 +5,7 @@ from .models import *
 
 class XrideUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = XrideUser
+        model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name','wallet_balance', 'phone_number', 'address','national_id']
         extra_kwargs = {
             'password': {'write_only': True},
@@ -14,7 +14,7 @@ class XrideUserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        user = XrideUser(
+        user = User(
             username=validated_data['username'],
             email=validated_data['email'],
             wallet_balance=validated_data.get('wallet_balance', 0.00),
@@ -44,7 +44,7 @@ class SimpleCarSerializer(serializers.ModelSerializer):
 
 class SimplUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = XrideUser  # Ensure that XrideUser is correctly referenced, update if it's a different model
+        model = User  # Ensure that XrideUser is correctly referenced, update if it's a different model
         fields = ['id', 'username']  # Include only id and username
 
 class ReservationSerializer(serializers.ModelSerializer):
@@ -85,7 +85,7 @@ class ReservationHistorySerializer(serializers.ModelSerializer):
 
 class CurrentlUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = XrideUser
+        model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'wallet_balance', 'phone_number', 'address', 'national_id', 'personal_photo', 'licence_photo', 'national_id_photo']
 
 

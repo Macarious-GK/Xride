@@ -24,7 +24,7 @@ def violation_photo_upload_path(instance, filename):
     filename = f"violation_{instance.id}_{timezone.now().strftime('%Y-%m-%d-%H-%M-%S')}.{ext}"
     return os.path.join('media', 'violation_photos', filename)
 
-class XrideUser(AbstractUser):
+class User(AbstractUser):
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -62,7 +62,7 @@ class Payment(models.Model):
         ('pending', 'Pending'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     transaction_id = models.BigIntegerField(unique=True, null=True, blank=True)  # Allow null values for initial creation
     order_id = models.TextField(unique=True)
     collector = models.CharField(max_length=255, null=True, blank=True)  # Nullable
@@ -89,7 +89,7 @@ class Reservation(models.Model):
         ('6H', '6 Hours'),
         ('12H', '12 Hours'),
     ]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)  # Will be set when releasing the reservation
@@ -115,7 +115,7 @@ class ReservationHistory(models.Model):
         ('12H', '12 Hours'),
     ]
     reservation_ID = models.IntegerField()
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
@@ -137,7 +137,7 @@ class Fine(models.Model):
 
     reservation = models.ForeignKey('Reservation', on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.TextField()  # Detailed information about the fine
     created_at = models.DateTimeField(auto_now_add=True)  # Automatically set when the fine is created
@@ -252,7 +252,7 @@ class UserActionLog(models.Model):
         ('violation_reported', 'Violation Reported'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     action_type = models.CharField(max_length=50, choices=ACTION_CHOICES)
     action_details = models.TextField(null=True, blank=True)  # Any additional details about the action
     timestamp = models.DateTimeField(auto_now_add=True)  # Automatically set the timestamp when the log is created
@@ -262,7 +262,6 @@ class UserActionLog(models.Model):
 
     class Meta:
         ordering = ['-timestamp']  # Orders the logs by the most recent first
-
 
 
 
@@ -281,7 +280,7 @@ class UserActionLog(models.Model):
 #         ('12H', '12 Hours'),
 #     ]
 
-    # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE)
     # car = models.ForeignKey('Car', on_delete=models.CASCADE)
     # start_time = models.DateTimeField(null=True, blank=True)
     # end_time = models.DateTimeField(null=True, blank=True)  # Will be set when releasing the reservation
