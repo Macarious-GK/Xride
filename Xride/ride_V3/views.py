@@ -16,6 +16,8 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 # from .mqtt_subscriber_cloud import publish_car_door_state
 
+# -------------------------------------Reusable views--------------------------------------------
+
 plans_map = {
     "2H": 2,
     "6H": 6,
@@ -36,35 +38,12 @@ def haversine(lon1, lat1, lon2, lat2):
     r = 6371  # Earth radius in km
     return c * r
 
-class UserDetailView(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = CurrentlUserSerializer
-    permission_classes = [IsAuthenticated]
+class HasActiveReservation(BasePermission):
+    def has_permission(self, request, view):
+        car_id = view.kwargs.get('car_id')
+        return Reservation.objects.filter(user=request.user, car_id=car_id, status='active').exists()
 
-    def get_object(self):
-        return self.request.user  # Return the current authenticated user
-    
-class CheckActiveReservationView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        active_reservation = Reservation.objects.filter(user=request.user, status='active').first()
-        
-        if active_reservation:
-            data = {
-                'has_active_reservation': True,
-                'reservation_id': active_reservation.id,
-                'car_id': active_reservation.car.id,
-                'car_model': active_reservation.car.car_model.model_name,
-                'car_plate': active_reservation.car.car_plate,
-                'reservation_plan': active_reservation.reservation_plan,
-                'start_time': active_reservation.start_time,
-                'end_time': active_reservation.start_time + timezone.timedelta(hours=plans_map[active_reservation.reservation_plan]),
-                'status': active_reservation.status,
-            }
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            return Response({'has_active_reservation': False}, status=status.HTTP_200_OK)
+# -------------------------------------Car list/reserve/release/status/update door views--------------------------------------------
 
 class AvailableCarsWithinRadiusView(APIView):
     permission_classes = [IsAuthenticated]
@@ -234,70 +213,6 @@ class ReleaseCarView(APIView):
         duration = end_time - start_time
         return duration.total_seconds() / 3600  # Convert seconds to hours
 
-class PostReviewView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        reservationHistory_id = request.data.get('reservation_id')
-        rating = request.data.get('rating')
-        review = request.data.get('review')
-
-        if  not user.verified:
-            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if not reservationHistory_id :
-            return Response({"error": "Reservation ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        ReservationHistory_obj = get_object_or_404(ReservationHistory, id=reservationHistory_id)
-
-        if ReservationHistory_obj.user != user:
-            return Response({"error": "You are not allowed to review this reservation."}, status=status.HTTP_403_FORBIDDEN)
-        ReservationHistory_obj.review_rate = rating
-        ReservationHistory_obj.review_text = review
-        ReservationHistory_obj.save()
-
-        return Response({"message": "Review added successfully."}, status=status.HTTP_200_OK)
-        
-class UserListReservationsView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        user = request.user
-        if  not user.verified:
-            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        reservations = ReservationHistory.objects.filter(user=user)
-        serializer = ReservationSerializer(reservations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-class ListLocatioView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        user = request.user
-        if  not user.verified:
-            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        locations = Location.objects.all()
-        serializer = LocationSerializer(locations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-class ListFineView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        user = request.user
-        if  not user.verified:
-            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        fines = Fine.objects.filter(user=user)
-        serializer = FineSerializer(fines, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-# Car Status views
-class HasActiveReservation(BasePermission):
-    def has_permission(self, request, view):
-        car_id = view.kwargs.get('car_id')
-        return Reservation.objects.filter(user=request.user, car_id=car_id, status='active').exists()
-
 class CarStatusView(APIView):
     permission_classes = [IsAuthenticated, HasActiveReservation]
 
@@ -336,7 +251,99 @@ class DoorStatusUpdateView(APIView):
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# -------------------------------------Reservation list review/ Location & Fines list/  views--------------------------------------------
+
+class UserDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = User.objects.all()
+    serializer_class = CurrentlUserSerializer
+
+    def get_object(self):
+        return self.request.user  # Return the current authenticated user
+    
+class CheckActiveReservationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        active_reservation = Reservation.objects.filter(user=request.user, status='active').first()
         
+        if active_reservation:
+            data = {
+                'has_active_reservation': True,
+                'reservation_id': active_reservation.id,
+                'car_id': active_reservation.car.id,
+                'car_model': active_reservation.car.car_model.model_name,
+                'car_plate': active_reservation.car.car_plate,
+                'reservation_plan': active_reservation.reservation_plan,
+                'reservation_Locatiion_Source': active_reservation.reservation_Locatiion_Source,
+                'start_time': active_reservation.start_time,
+                'end_time': active_reservation.start_time + timezone.timedelta(hours=plans_map[active_reservation.reservation_plan]),
+                'status': active_reservation.status,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response({'has_active_reservation': False}, status=status.HTTP_200_OK)
+
+class UserListReservationsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        reservations = ReservationHistory.objects.filter(user=user)
+        serializer = ReservationHistorySerializer(reservations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ListLocatioView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        locations = Location.objects.all()
+        serializer = LocationSerializer(locations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ListFineView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        fines = Fine.objects.filter(user=user)
+        serializer = FineSerializer(fines, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class PostReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        reservationHistory_id = request.data.get('reservation_id')
+        rating = request.data.get('rating')
+        review = request.data.get('review')
+
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not reservationHistory_id :
+            return Response({"error": "Reservation ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ReservationHistory_obj = get_object_or_404(ReservationHistory, id=reservationHistory_id)
+
+        if ReservationHistory_obj.user != user:
+            return Response({"error": "You are not allowed to review this reservation."}, status=status.HTTP_403_FORBIDDEN)
+        ReservationHistory_obj.review_rate = rating
+        ReservationHistory_obj.review_text = review
+        ReservationHistory_obj.save()
+
+        return Response({"message": "Review added successfully."}, status=status.HTTP_200_OK)
+
+# -------------------------------------Payment views--------------------------------------------
 class EchoView(APIView):
     """Echoes back the POST request body as JSON."""
     permission_classes = [AllowAny]

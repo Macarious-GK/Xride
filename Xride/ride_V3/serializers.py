@@ -71,6 +71,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'reservation_plan',
+            'reservation_Locatiion_Source',
             'status',
             'duration',  # Calculated duration
         ]
@@ -90,6 +91,10 @@ class ReservationHistorySerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'reservation_plan',
+            'reservation_Locatiion_Source',
+            'reservation_Locatiion_Distnation',
+            'review_rate',
+            'review_text',
             'status',
             'duration',
         ]
