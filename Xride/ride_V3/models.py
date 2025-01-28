@@ -29,6 +29,8 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     national_id = models.CharField(max_length=14, unique=True, blank=True, null=True)  # National ID field
+    verified = models.BooleanField(default=False)
+
 
     personal_photo = models.ImageField(upload_to=personal_photo_upload_path, blank=True, null=True)
     licence_photo = models.ImageField(upload_to=licence_photo_upload_path, blank=True, null=True)
@@ -54,6 +56,15 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"Name: {self.username} Balance: {self.wallet_balance}"
+
+class Location(models.Model):
+    park_name = models.CharField(max_length=255)
+    radius = models.FloatField(help_text="Radius of the park in meters")
+    latitude = models.FloatField(help_text="Latitude of the park location")
+    longitude = models.FloatField(help_text="Longitude of the park location")
+
+    def __str__(self):
+        return f"{self.park_name} (Radius: {self.radius})"
 
 class Payment(models.Model):
     STATUS_CHOICES = [
@@ -91,6 +102,7 @@ class Reservation(models.Model):
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
+    reservation_Locatiion_Source = models.ForeignKey('Location', on_delete=models.CASCADE)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)  # Will be set when releasing the reservation
     reservation_plan = models.CharField(max_length=3, choices=PLAN_CHOICES)
@@ -117,11 +129,27 @@ class ReservationHistory(models.Model):
     reservation_ID = models.IntegerField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
+    reservation_Locatiion_Source = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name='source_reservations'
+    )
+    reservation_Locatiion_Distnation = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name='destination_reservations'
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     reservation_plan = models.CharField(max_length=3, choices=PLAN_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='completed')
     duration = models.FloatField()
+    review_rate = models.PositiveIntegerField(
+        choices=[(i, i) for i in range(1, 6)],
+        help_text="Review rate from 1 to 5",null=True,blank=True
+    )
+    review_text = models.TextField(help_text="Review text about the park", null=True,blank=True)
+
 
     def __str__(self):
         return f"History of Reservation {self.reservation_ID} for {self.user} ({self.status}) for car {self.car.car_model.model_name} ({self.car.car_plate}) by {self.car.car_model.year}"
@@ -135,7 +163,7 @@ class Fine(models.Model):
         PENDING = 'pending', 'Pending'
         UNPAID = 'unpaid', 'Unpaid'
 
-    reservation = models.ForeignKey('Reservation', on_delete=models.CASCADE)
+    reservation = models.ForeignKey('ReservationHistory', on_delete=models.CASCADE)
     car = models.ForeignKey('Car', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
@@ -151,12 +179,6 @@ class Fine(models.Model):
 
     class Meta:
         ordering = ['created_at']  # Sort fines by the creation date, so the most recent is first
-
-class Location(models.Model):
-    name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
 
 class ThirdPartyMaintenance(models.Model):
     name = models.CharField(max_length=255)
@@ -239,29 +261,29 @@ class Maintenance(models.Model):
     def __str__(self):
         return f"{self.maintenance_type} for {self.car} by {self.performed_by}"
 
-class UserActionLog(models.Model):
-    ACTION_CHOICES = [
-        ('reservation_created', 'Reservation Created'),
-        ('reservation_updated', 'Reservation Updated'),
-        ('reservation_deleted', 'Reservation Deleted'),
-        ('payment_made', 'Payment Made'),
-        ('profile_updated', 'Profile Updated'),
-        ('fine_paid', 'Fine Paid'),
-        ('car_booked', 'Car Booked'),
-        ('car_returned', 'Car Returned'),
-        ('violation_reported', 'Violation Reported'),
-    ]
+# class UserActionLog(models.Model):
+#     ACTION_CHOICES = [
+#         ('reservation_created', 'Reservation Created'),
+#         ('reservation_updated', 'Reservation Updated'),
+#         ('reservation_deleted', 'Reservation Deleted'),
+#         ('payment_made', 'Payment Made'),
+#         ('profile_updated', 'Profile Updated'),
+#         ('fine_paid', 'Fine Paid'),
+#         ('car_booked', 'Car Booked'),
+#         ('car_returned', 'Car Returned'),
+#         ('violation_reported', 'Violation Reported'),
+#     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    action_type = models.CharField(max_length=50, choices=ACTION_CHOICES)
-    action_details = models.TextField(null=True, blank=True)  # Any additional details about the action
-    timestamp = models.DateTimeField(auto_now_add=True)  # Automatically set the timestamp when the log is created
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     action_type = models.CharField(max_length=50, choices=ACTION_CHOICES)
+#     action_details = models.TextField(null=True, blank=True)  # Any additional details about the action
+#     timestamp = models.DateTimeField(auto_now_add=True)  # Automatically set the timestamp when the log is created
 
-    def __str__(self):
-        return f"{self.user.username} performed {self.action_type} at {self.timestamp}"
+#     def __str__(self):
+#         return f"{self.user.username} performed {self.action_type} at {self.timestamp}"
 
-    class Meta:
-        ordering = ['-timestamp']  # Orders the logs by the most recent first
+#     class Meta:
+#         ordering = ['-timestamp']  # Orders the logs by the most recent first
 
 
 

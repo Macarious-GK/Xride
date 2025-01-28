@@ -9,6 +9,10 @@ urlpatterns = [
     path('car/<int:car_id>/status/', CarStatusView.as_view(), name='car-status'),
     path('car/<int:car_id>/update-door/', DoorStatusUpdateView.as_view(), name='update-door-status'),
     # #--------------------------------------------------------------------- Car
+    path('locations/parking/', ListLocatioView.as_view(), name='view-locations'),
+    path('fines/', ListFineView.as_view(), name='view-fines'),
+
+    # #--------------------------------------------------------------------- location & fine
     path('user/profile/', UserDetailView.as_view(), name='view-profile'),
     path('user/trips/', UserListReservationsView.as_view(), name='release_car'),
     path('user/trips/active/', CheckActiveReservationView.as_view(), name='active-reservation'),

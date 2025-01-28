@@ -47,6 +47,17 @@ class SimplUserSerializer(serializers.ModelSerializer):
         model = User  # Ensure that XrideUser is correctly referenced, update if it's a different model
         fields = ['id', 'username']  # Include only id and username
 
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+
+class FineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fine
+        fields = '__all__'
+
+
 class ReservationSerializer(serializers.ModelSerializer):
     car = SimpleCarSerializer()  # Nested serializer for car details
     user = SimplUserSerializer(read_only=True)  # Nested serializer for user details

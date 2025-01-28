@@ -70,8 +70,12 @@ class AvailableCarsWithinRadiusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        user = request.user
         user_lat = request.query_params.get('latitude')
         user_lon = request.query_params.get('longitude')
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
 
         if not user_lat or not user_lon:
             return Response({'error': 'Please provide valid latitude and longitude.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -98,6 +102,9 @@ class ReserveCarView(APIView):
         user_lat = request.data.get('location_latitude')
         user_lon = request.data.get('location_longitude')
 
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
         if not user_lat or not user_lon:
             return Response({"error": "User location is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -108,7 +115,6 @@ class ReserveCarView(APIView):
 
         # Check if the user is within 50 meters of the car
         distance = haversine(float(user_lon), float(user_lat), car.location_longitude, car.location_latitude)
-        print(distance)
         if distance > .5:
             return Response({"error": "You are too far from the car to reserve it."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -139,7 +145,8 @@ class ReserveCarView(APIView):
                 user=user,
                 car=car,
                 reservation_plan=reservation_plan,
-                start_time=timezone.now()
+                start_time=timezone.now(),
+                reservation_Locatiion_Source= car.location
             )
             car.reservation_status = 'reserved'
             car.save(update_fields=['reservation_status'])
@@ -154,6 +161,18 @@ class ReleaseCarView(APIView):
 
     def post(self, request, car_id):
         user = request.user
+        reservation_park_dist = request.data.get('park_dist')
+        user_lat = request.data.get('location_latitude')
+        user_lon = request.data.get('location_longitude')
+
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+        reservation_park_dist_obj = get_object_or_404(Location, id=reservation_park_dist)
+
+        if not reservation_park_dist :
+            return Response({"error": "park_dist is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the car exists
         car = Car.objects.filter(id=car_id).first()
@@ -164,6 +183,11 @@ class ReleaseCarView(APIView):
         reservation = Reservation.objects.filter(user=user, car=car, status='active').first()
         if not reservation:
             return Response({"error": "You do not have a reservation for this car."}, status=status.HTTP_403_FORBIDDEN)
+        
+        distance = haversine(float(user_lon), float(user_lat), reservation_park_dist_obj.longitude, reservation_park_dist_obj.latitude)
+        if distance > reservation_park_dist_obj.radius:
+            return Response({"error": "You are too far from the parking"}, status=status.HTTP_400_BAD_REQUEST)
+
 
         # Set the reservation status to completed
         reservation.status = 'completed'
@@ -178,6 +202,8 @@ class ReleaseCarView(APIView):
             start_time=reservation.start_time,
             end_time=reservation.end_time,
             reservation_plan=reservation.reservation_plan,
+            reservation_Locatiion_Source = reservation.reservation_Locatiion_Source,
+            reservation_Locatiion_Distnation = reservation_park_dist_obj,
             status='completed',  # The status is completed for history
             duration=reservation.duration
         )
@@ -189,7 +215,8 @@ class ReleaseCarView(APIView):
         # Set the car status to available
         car.reservation_status = 'available'
         car.door_status = 'locked'  # Lock the door when releasing the car
-        car.save(update_fields=['reservation_status','door_status'])
+        car.location = reservation_park_dist_obj
+        car.save(update_fields=['reservation_status','door_status','location'])
 
         return Response({
             "message": f"You have successfully released {car.car_model.model_name}.",
@@ -204,9 +231,35 @@ class UserListReservationsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
         reservations = ReservationHistory.objects.filter(user=user)
         serializer = ReservationSerializer(reservations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ListLocatioView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        locations = Location.objects.all()
+        serializer = LocationSerializer(locations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ListFineView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        fines = Fine.objects.filter(user=user)
+        serializer = FineSerializer(fines, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # Car Status views
 class HasActiveReservation(BasePermission):
@@ -218,6 +271,10 @@ class CarStatusView(APIView):
     permission_classes = [IsAuthenticated, HasActiveReservation]
 
     def get(self, request, car_id):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             car = Car.objects.get(pk=car_id)
             serializer = CarSerializer(car)
@@ -232,6 +289,10 @@ class DoorStatusUpdateView(APIView):
 
     @transaction.atomic
     def post(self, request, car_id):
+        user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             car = Car.objects.select_for_update().get(pk=car_id)
             # Toggle door status
@@ -308,6 +369,8 @@ class PaymentCreateView(APIView):
         amount = request.data.get('amount')
         order_id = request.data.get('order_id')
         user = request.user
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if amount is provided
         if not amount or not order_id:
