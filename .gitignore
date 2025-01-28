@@ -3,3 +3,4 @@ __pycache__/
 secret.py
 .env
 /Certs
+.vscode/

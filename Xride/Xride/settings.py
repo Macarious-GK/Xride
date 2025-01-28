@@ -200,8 +200,8 @@ DEFAULT_FROM_EMAIL = 'xride.tech.team@gmail.com'
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Short-lived access token for security
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token for longer sessions
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=30),  # Short-lived access token for security
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=1),  # Refresh token for longer sessions
     'AUTH_HEADER_TYPES': ('JWT',),  # Set the auth header type to 'JWT'
 }
 
