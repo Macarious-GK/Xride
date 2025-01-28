@@ -64,7 +64,7 @@ class Location(models.Model):
     longitude = models.FloatField(help_text="Longitude of the park location")
 
     def __str__(self):
-        return f"{self.park_name} (Radius: {self.radius})"
+        return f"{self.park_name} (Radius: {self.radius}) with ID: {self.id}"
 
 class Payment(models.Model):
     STATUS_CHOICES = [
@@ -211,17 +211,23 @@ class Car(models.Model):
 
     RESERVATION_STATUS_CHOICES = [
         ('reserved', 'Reserved'),
+        ('maintenance', 'Maintenance'),
         ('available', 'Available'),
+    ]
+    Engine_STATUS_CHOICES = [
+        ('off', 'Off'),
+        ('on', 'On'),
     ]
 
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
     car_model = models.ForeignKey(CarModel, on_delete=models.CASCADE)
     car_plate = models.CharField(max_length=20, unique=True)
     door_status = models.CharField(max_length=10, choices=DOOR_STATUS_CHOICES, default='locked')
+    # engine_status = models.CharField(max_length=10, choices=Engine_STATUS_CHOICES, default='off')
     temperature = models.FloatField()
     location_latitude = models.FloatField()
     location_longitude = models.FloatField()
-    reservation_status = models.CharField(max_length=10, choices=RESERVATION_STATUS_CHOICES, default='available')
+    reservation_status = models.CharField(max_length=12, choices=RESERVATION_STATUS_CHOICES, default='available')
     booking_price_2H = models.DecimalField(max_digits=8, decimal_places=2)
     booking_price_6H = models.DecimalField(max_digits=8, decimal_places=2)
     booking_price_12H = models.DecimalField(max_digits=8, decimal_places=2)

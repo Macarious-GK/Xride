@@ -114,9 +114,11 @@ class ReserveCarView(APIView):
             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Check if the user is within 50 meters of the car
-        distance = haversine(float(user_lon), float(user_lat), car.location_longitude, car.location_latitude)
-        if distance > .5:
-            return Response({"error": "You are too far from the car to reserve it."}, status=status.HTTP_400_BAD_REQUEST)
+        distance_car_user = haversine(float(user_lon), float(user_lat), car.location_longitude, car.location_latitude)
+        distance_park_user = haversine(car.location.longitude, car.location.latitude, car.location_longitude, car.location_latitude)
+        print(distance_car_user,distance_park_user)
+        if distance_car_user > .2 or distance_park_user > .3:
+            return Response({"error": "You are too far from the car or parking to reserve it."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the user has an active reservation
         active_reservation = Reservation.objects.filter(user=user, status='active').first()
@@ -178,6 +180,9 @@ class ReleaseCarView(APIView):
         car = Car.objects.filter(id=car_id).first()
         if not car:
             return Response({"error": "Car not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # if car.engine_status == 'on':
+        #     return Response({"error": "Car engine is on, please turn it off before releasing the car."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the car is reserved by the current user
         reservation = Reservation.objects.filter(user=user, car=car, status='active').first()
@@ -214,9 +219,11 @@ class ReleaseCarView(APIView):
 
         # Set the car status to available
         car.reservation_status = 'available'
+        car.location_latitude = user_lat
+        car.location_longitude = user_lon
         car.door_status = 'locked'  # Lock the door when releasing the car
         car.location = reservation_park_dist_obj
-        car.save(update_fields=['reservation_status','door_status','location'])
+        car.save(update_fields=['reservation_status','door_status','location','location_latitude','location_longitude'])
 
         return Response({
             "message": f"You have successfully released {car.car_model.model_name}.",
@@ -227,6 +234,31 @@ class ReleaseCarView(APIView):
         duration = end_time - start_time
         return duration.total_seconds() / 3600  # Convert seconds to hours
 
+class PostReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        reservationHistory_id = request.data.get('reservation_id')
+        rating = request.data.get('rating')
+        review = request.data.get('review')
+
+        if  not user.verified:
+            return Response({"error": "User Not Verified yet, please wait until your account is verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not reservationHistory_id :
+            return Response({"error": "Reservation ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ReservationHistory_obj = get_object_or_404(ReservationHistory, id=reservationHistory_id)
+
+        if ReservationHistory_obj.user != user:
+            return Response({"error": "You are not allowed to review this reservation."}, status=status.HTTP_403_FORBIDDEN)
+        ReservationHistory_obj.review_rate = rating
+        ReservationHistory_obj.review_text = review
+        ReservationHistory_obj.save()
+
+        return Response({"message": "Review added successfully."}, status=status.HTTP_200_OK)
+        
 class UserListReservationsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
