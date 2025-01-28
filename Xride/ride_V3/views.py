@@ -260,7 +260,6 @@ class ListFineView(APIView):
         serializer = FineSerializer(fines, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
 # Car Status views
 class HasActiveReservation(BasePermission):
     def has_permission(self, request, view):
