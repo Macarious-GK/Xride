@@ -75,7 +75,7 @@ class Payment(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     transaction_id = models.BigIntegerField(unique=True, null=True, blank=True)  # Allow null values for initial creation
-    order_id = models.TextField(unique=True,max_length=255)
+    order_id = models.TextField(unique=True)
     collector = models.CharField(max_length=255, null=True, blank=True)  # Nullable
     card_type = models.CharField(max_length=20, blank=True, null=True)  # e.g., 'Visa', 'MasterCard'
     card_last_four = models.CharField(max_length=4, blank=True, null=True)  # Last four digits of the card
