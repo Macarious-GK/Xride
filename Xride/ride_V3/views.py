@@ -133,9 +133,15 @@ class ReserveCarView(APIView):
             car.save(update_fields=['reservation_status'])
 
         return Response({
-            "message": f"You have successfully reserved {car.car_model.model_name}.",
-            "reservation_id": reservation.id
-        }, status=status.HTTP_200_OK)
+                'reservation_id': reservation.id,
+                'car_id': reservation.car.id,
+                'car_model': reservation.car.car_model.model_name,
+                'car_plate': reservation.car.car_plate,
+                'reservation_plan': reservation.reservation_plan,
+                'start_time': reservation.start_time,
+                'end_time': reservation.start_time + timezone.timedelta(hours=plans_map[reservation.reservation_plan]),
+                'status': reservation.status,
+            }, status=status.HTTP_200_OK)
     
 class ReleaseCarView(APIView):
     permission_classes = [IsAuthenticated]
@@ -276,7 +282,6 @@ class CheckActiveReservationView(APIView):
                 'car_model': active_reservation.car.car_model.model_name,
                 'car_plate': active_reservation.car.car_plate,
                 'reservation_plan': active_reservation.reservation_plan,
-                'reservation_Locatiion_Source': active_reservation.reservation_Locatiion_Source,
                 'start_time': active_reservation.start_time,
                 'end_time': active_reservation.start_time + timezone.timedelta(hours=plans_map[active_reservation.reservation_plan]),
                 'status': active_reservation.status,
