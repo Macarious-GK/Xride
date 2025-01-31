@@ -10,6 +10,7 @@ def Manage_S3_Media(file_path, action):
         aws_secret_access_key= settings.AWS_SECRET_ACCESS_KEY
     )
     bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+    print(f'Performing {action} operation on {file_path} in {bucket_name}...')
     if action == 'delete':
         try:
             # Delete the specified file

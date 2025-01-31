@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
+import os
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-8d_=v-q90%c0yh+1=@8z(opwdgp5q6h(0bh+%&be$42@o-gl^w'
 
@@ -156,26 +156,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #--------------------------------------------------------------------
 
 
-# AWS_ACCESS_KEY_ID = ''
-# AWS_SECRET_ACCESS_KEY = ''
-# AWS_STORAGE_BUCKET_NAME = ''
-# AWS_S3_CUSTOM_DOMAIN = '%s.s3.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
-# AWS_S3_REGION_NAME = 'us-east-2'
-# AWS_S3_SIGNATURE_NAME = 's3v4',
-# AWS_S3_FILE_OVERWRITE = False
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = 'djangoxridemedia'
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
+AWS_S3_REGION_NAME = 'us-east-2'
+AWS_S3_SIGNATURE_NAME = 's3v4'
+AWS_S3_FILE_OVERWRITE = False
 # AWS_DEFAULT_ACL =  None
 # AWS_S3_VERIFY = True
 # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
-# MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}amazonaws.com/'
-# STORAGES = {
-#     'default': {
-#         'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
-#     },
+MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
+    },
     
-#     'staticfiles': {
-#         'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
-#     }
-# }
+    'staticfiles': {
+        'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
+    }
+}
 
 
 
