@@ -96,7 +96,7 @@ class ReserveCarView(APIView):
         distance_car_user = haversine(float(user_lon), float(user_lat), car.location_longitude, car.location_latitude)
         distance_park_user = haversine(car.location.longitude, car.location.latitude, car.location_longitude, car.location_latitude)
         print(distance_car_user,distance_park_user)
-        if distance_car_user > .2 or distance_park_user > .3:
+        if distance_car_user > .2 or distance_park_user > car.location.radius:
             return Response({"error": "You are too far from the car or parking to reserve it."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the user has an active reservation
