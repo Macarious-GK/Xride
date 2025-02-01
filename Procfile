@@ -1,1 +1,1 @@
-web: cd Xride && daphne -b 0.0.0.0 -p ${PORT:-8000} Xride.asgi:application
+web: cd Xride && python -m gunicorn Xride.wsgi:application
