@@ -52,11 +52,14 @@ def start_mqtt_client():
     try:
         print("Initializing MQTT client...")
         client = mqtt.Client()
+        print("Setting TLS certificates...")
         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+        print("Setting callbacks...")
         client.on_connect = on_connect
         client.on_message = on_message
+        print("Connecting to MQTT Broker...")
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-
+        print("Starting MQTT loop...")
         # Start background database update task
         # threading.Thread(target=update_database, daemon=True).start()
 
