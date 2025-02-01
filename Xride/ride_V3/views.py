@@ -14,9 +14,13 @@ from math import radians, cos, sin, asin, sqrt
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.shortcuts import render
 # from .mqtt_subscriber_cloud import publish_car_door_state
 
 # -------------------------------------Reusable views--------------------------------------------
+
+def test(request):
+    return render(request, 'notfy.html')
 
 plans_map = {
     "2H": 2,

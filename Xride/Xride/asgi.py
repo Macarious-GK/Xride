@@ -9,8 +9,22 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 
 import os
 
+from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.urls import path
+# import ride_V3.routing
+from ride_V3.consumers import *
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Xride.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'xtest.settings')
 
-application = get_asgi_application()
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket":AuthMiddlewareStack(
+            URLRouter([
+                path('ws/notification/', NotificationConsumer.as_asgi()),
+                path("ws/car-status/", CarStatusConsumer.as_asgi()),
+            ])
+        )
+    ,
+})
