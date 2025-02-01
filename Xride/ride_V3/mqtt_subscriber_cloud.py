@@ -53,6 +53,7 @@ def start_mqtt_client():
         print("Initializing MQTT client...")
         client = mqtt.Client()
         print("Setting TLS certificates...")
+        print(CA_CERT, CLIENT_CERT, CLIENT_KEY)
         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
         print("Setting callbacks...")
         client.on_connect = on_connect
