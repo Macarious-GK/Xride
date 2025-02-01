@@ -1,2 +1,1 @@
-web: cd Xride && daphne -b 0.0.0.0 -p $PORT Xride.asgi:application
-
+web: cd Xride && daphne -b 0.0.0.0 -p ${PORT:-8000} Xride.asgi:application
