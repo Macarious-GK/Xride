@@ -95,7 +95,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
 
     async def car_update_event(self, event):
         """Handler for car updates sent via MQTT."""
-        # print("Received event in WebSocket:", event)  # Debugging
+        print("Received event in WebSocket:", event)  # Debugging
 
         try:
             async with status_lock:

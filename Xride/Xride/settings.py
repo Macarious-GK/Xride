@@ -27,6 +27,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Allow connections only from your Heroku app
+# ALLOWED_HOSTS = ["xride-0b5af1b59b29.herokuapp.com"]
+
+# Ensure secure cookies for sessions
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Application definition
 
