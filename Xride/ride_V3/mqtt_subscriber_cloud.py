@@ -95,9 +95,13 @@ def on_message(client, userdata, msg):
             print("in atomic")
             with transaction.atomic():
                 car = Car.objects.select_for_update().get(id=car_id)
-                car.latitude = latitude
-                car.longitude = longitude
-                car.save(update_fields=["latitude", "longitude"])
+                car.location_latitude = latitude
+                car.location_longitude = longitude
+                car.speed = data.get("speed")
+                car.fuel_level = data.get("fuel")
+                car.engine_status = data.get("Engine")
+        
+                car.save(update_fields=["location_longitude", "location_latitude"])
             
             print(f"✅ Updated car {car_id}: Lat={latitude}, Lon={longitude}")
 
