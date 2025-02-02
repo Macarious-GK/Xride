@@ -16,11 +16,21 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.shortcuts import render
 from .mqtt_subscriber_cloud import *
+from django.core.cache import cache
+from django.http import JsonResponse
 
 # -------------------------------------Reusable views--------------------------------------------
 
-def test(request):
+def live(request):
     return render(request, 'notfy.html')
+
+def test_redis(request):
+    try:
+        cache.set("test_key", "Hello Redis!", timeout=60)
+        value = cache.get("test_key")
+        return JsonResponse({"message": "✅ Redis is working!", "value": value})
+    except Exception as e:
+        return JsonResponse({"error": f"❌ Redis connection failed: {str(e)}"})
 
 plans_map = {
     "2H": 2,

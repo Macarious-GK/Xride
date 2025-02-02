@@ -23,7 +23,9 @@ urlpatterns = [
     path('user/payments/confirm/', PaymentConfirmation.as_view(), name='confirm-payment'),
     path('user/payments-HMAC/confirm/', PaymentConfirmationWithHMAC.as_view(), name='confirm-payment-HMAC'),
     # #--------------------------------------------------------------------- Payment
-    path('', test, name='index'),
+    path('live-tracking/', live, name='index'),
+    path('test-redis/', test_redis, name='test_redis'),
+
     path('eco/', EchoView.as_view(), name='update-temperature'),
 
 
