@@ -13,6 +13,7 @@ channel_layer = get_channel_layer()
 MQTT_BROKER = "a1npc4fmgfecx6-ats.iot.us-east-2.amazonaws.com"
 MQTT_PORT = 8883
 MQTT_TOPIC = "car/+/xride/module/+/data"
+Door_TOPIC = "car/+/xride/door"
 
 # CA_CERT = r"D:\Grad\Testing\Certs\CA.pem"
 # CLIENT_CERT = r"D:\Grad\Testing\Certs\client-certificate.pem.crt"
@@ -78,8 +79,8 @@ def on_message(client, userdata, msg):
 
         # Extract car details
         car_id = data.get("car-id") or data.get("car_id")
-        latitude = data.get("latitude")
-        longitude = data.get("longitude")
+        latitude = data.get("Latitude")
+        longitude = data.get("Longitude")
         module = data.get("module")
 
         if not car_id:
