@@ -244,6 +244,10 @@ class CarStatusView(APIView):
         try:
             car = Car.objects.get(pk=car_id)
             serializer = CarSerializer(car)
+            status_TOPIC = f"car/{car_id}/xride/status"
+            data = {"status":"status"}
+            type = "status"
+            publish_message(status_TOPIC, data,type)
             return Response(serializer.data)
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -270,7 +274,8 @@ class DoorStatusUpdateView(APIView):
             car.save()  # Save the updated status
             Door_TOPIC = f"car/{car_id}/xride/door"
             data = {"door":car.door_status}
-            publish_message(Door_TOPIC, data)
+            type = "door"
+            publish_message(Door_TOPIC, data,type)
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)

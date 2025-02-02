@@ -95,26 +95,45 @@ def on_message(client, userdata, msg):
 def on_publish(client, userdata, mid):
     print(f"📤 Message Published with ID: {mid}")
 
-def publish_message(topic, payload):
+def publish_message(topic, payload, type):
     """Publishes a message to an MQTT topic."""
     try:
-        print("Initializing MQTT client for publishing...")
-        client = mqtt.Client()
-        client.tls_set(
-            ca_certs=CA_CERT_PATH,
-            certfile=CLIENT_CERT_PATH,
-            keyfile=CLIENT_KEY_PATH
-        )
+        if type == "door":
+            print("Initializing MQTT client for publishing...")
+            client = mqtt.Client()
+            client.tls_set(
+                ca_certs=CA_CERT_PATH,
+                certfile=CLIENT_CERT_PATH,
+                keyfile=CLIENT_KEY_PATH
+            )
 
-        client.on_publish = on_publish
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.loop_start()
-        print(f"🔗 Connected to MQTT Broker for publishing. Publishing message...")
-        client.publish(topic, json.dumps(payload), qos=1)
-        time.sleep(6)
+            client.on_publish = on_publish
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            client.loop_start()
+            print(f"🔗 Connected to MQTT Broker for publishing. Publishing message...")
+            client.publish(topic, json.dumps(payload), qos=1)
+            time.sleep(6)
 
-        print(f"📤 Published message to {topic}: {payload}")
-        client.disconnect()
+            print(f"📤 Published message to {topic}: {payload}")
+            client.disconnect()
+        if type == "status":
+            print("Initializing MQTT client for publishing...")
+            client = mqtt.Client()
+            client.tls_set(
+                ca_certs=CA_CERT_PATH,
+                certfile=CLIENT_CERT_PATH,
+                keyfile=CLIENT_KEY_PATH
+            )
+
+            client.on_publish = on_publish
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            client.loop_start()
+            print(f"🔗 Connected to MQTT Broker for publishing. Publishing message...")
+            client.publish(topic, json.dumps(payload), qos=1)
+            time.sleep(6)
+
+            print(f"📤 Published message to {topic}: {payload}")
+            client.disconnect()
     except Exception as e:
         print(f"❌ Error publishing message: {e}")
 
