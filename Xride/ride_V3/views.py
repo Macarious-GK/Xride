@@ -18,20 +18,37 @@ from django.shortcuts import render
 from .mqtt_subscriber_cloud import *
 from django.core.cache import cache
 from django.http import JsonResponse
-
+import redis
 # -------------------------------------Reusable views--------------------------------------------
 
 def live(request):
     return render(request, 'notfy.html')
 
+redis_client = redis.StrictRedis.from_url(
+    "rediss://red-cjcsrendb61s739bj610:B59haYUZ3iFrOM9g0mzbWubr2ZfReoIc@oregon-redis.render.com:6379",
+    ssl_cert_reqs=None  # Disables certificate validation
+)
+
 def test_redis(request):
     try:
-        cache.set("test_key", "Hello Redis!", timeout=60)
-        value = cache.get("test_key")
-        return JsonResponse({"message": "✅ Redis is working!", "value": value})
+        # Retrieve all car data from Redis
+        car_keys = redis_client.keys("car:*")  # Get all keys matching "car:*"
+        
+        if not car_keys:
+            return JsonResponse({"message": "No car data found in Redis."})
+        
+        # Fetch the data for each car
+        cars = {}
+        for key in car_keys:
+            car_data = redis_client.get(key)
+            if car_data:
+                cars[key.decode()] = json.loads(car_data)
+
+        return JsonResponse({"message": "✅ Retrieved all car data from Redis", "cars": cars})
+
     except Exception as e:
         return JsonResponse({"error": f"❌ Redis connection failed: {str(e)}"})
-
+    
 plans_map = {
     "2H": 2,
     "6H": 6,
@@ -191,7 +208,14 @@ class ReleaseCarView(APIView):
         distance = haversine(float(user_lon), float(user_lat), reservation_park_dist_obj.longitude, reservation_park_dist_obj.latitude)
         if distance > reservation_park_dist_obj.radius:
             return Response({"error": "You are too far from the parking"}, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        
+        distance_car_park = haversine(car.location_longitude, car.location_latitude, reservation_park_dist_obj.longitude, reservation_park_dist_obj.latitude)
+        if distance_car_park > reservation_park_dist_obj.radius:
+            return Response({"error": "Car is too far from the parking"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if car.door_status == 'unlocked':
+            return Response({"error": "Car door is unlocked, please lock it before releasing the car."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Set the reservation status to completed
         reservation.status = 'completed'
@@ -217,12 +241,12 @@ class ReleaseCarView(APIView):
         reservation.delete()
 
         # Set the car status to available
-        car.reservation_status = 'available'
-        car.location_latitude = user_lat
-        car.location_longitude = user_lon
-        car.door_status = 'locked'  # Lock the door when releasing the car
-        car.location = reservation_park_dist_obj
-        car.save(update_fields=['reservation_status','door_status','location','location_latitude','location_longitude'])
+        # car.reservation_status = 'available'
+        # car.location_latitude = user_lat
+        # car.location_longitude = user_lon
+        # car.door_status = 'locked'  # Lock the door when releasing the car
+        # car.location = reservation_park_dist_obj
+        # car.save(update_fields=['reservation_status','door_status','location','location_latitude','location_longitude'])
 
         return Response({
             "message": f"You have successfully released {car.car_model.model_name}.",

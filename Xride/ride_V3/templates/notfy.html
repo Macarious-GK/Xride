@@ -10,42 +10,150 @@
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             const socket = new WebSocket(wsProtocol + window.location.host + "/ws/car-status/");
     
-            let carElement = null; // Variable to hold the car card element
+            let carElements = {}; // Stores car elements
+            let carTimestamps = {}; // Stores last update timestamps
     
             socket.onopen = function() {
                 console.log('WebSocket connection established');
             };
     
             socket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                console.log( data.car_data)
-                const car = data;  // Directly assign the incoming data to car since it's not an array
+                try {
+                    const message = JSON.parse(e.data);
+                    console.log('WebSocket message:', message);
+                    if(message.car_data){
+                        message.data = message.car_data;
+                    }
     
-                const monitorDiv = document.getElementById('car-monitor');
+                    // Validate message structure
+                    if (!message || !message.data) {
+
+                        console.error("Invalid WebSocket message:", message);
+                        return;
+                    }
     
-                // If carElement is not created yet, create it and insert it into the monitor div
-                if (!carElement) {
-                    carElement = document.createElement('div');
-                    carElement.classList.add('card', 'shadow-sm', 'mb-3');
-                    monitorDiv.appendChild(carElement);
+                    const car = message.data;
+                    const carId = car.car_id;
+    
+                    if (!carId) {
+                        console.error("Missing car ID in WebSocket message:", message);
+                        return;
+                    }
+    
+                    const monitorDiv = document.getElementById('car-monitor');
+    
+                    // If this is the first time we see this car, create a new card
+                    if (!carElements[carId]) {
+                        const carElement = document.createElement('div');
+                        carElement.classList.add('card', 'shadow-sm', 'mb-3');
+                        carElements[carId] = carElement;
+                        monitorDiv.appendChild(carElement);
+                    }
+    
+                    // Update the car's last received timestamp
+                    carTimestamps[carId] = Date.now();
+    
+                    // Update the card content
+                    carElements[carId].innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">🚗 Car ID: <strong>${carId}</strong></h5>
+                            <p class="card-text"><strong>Module:</strong> ${car.module || "N/A"}</p>
+                            <p class="card-text"><strong>Location:</strong> Latitude: ${car.Latitude || "N/A"}, Longitude: ${car.Longitude || "N/A"}</p>
+                            <p class="card-text"><strong>Speed:</strong> ${car.speed || "N/A"} km/h</p>
+                            <p class="card-text"><strong>Fuel Level:</strong> ${car.fuel || "N/A"}%</p>
+                            <p class="card-text" style="color: ${car.Engine === 'ON' ? 'green' : 'red'};">
+                                <strong>Engine:</strong> ${car.Engine || "N/A"}
+                            </p>
+                            <p class="card-text"><strong>Doors:</strong> ${car.Doors || "N/A"}</p>
+                            <p class="text-muted">Last Updated: ${car["Last Updated"] || "N/A"}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error("Error processing WebSocket message:", error);
                 }
-                console.log( data.car_data)
-                // Update the car card content with the new data
-                carElement.innerHTML = `
-                    <div class="card-body">
-                        <h5 class="card-title">🚗 Car ID: <strong>${car.car_data.car_id}</strong></h5>
-                        <p class="card-text"><strong>Module:</strong> ${car.car_data.module}</p>
-                        <p class="card-text"><strong>Location:</strong> Latitude: ${car.car_data.Latitude}, Longitude: ${car.car_data.Longitude}</p>
-                        <p class="card-text"><strong>Speed:</strong> ${car.car_data.speed} km/h</p>
-                        <p class="card-text"><strong>Fuel Level:</strong> ${car.car_data.fuel}%</p>
-                        <p class="card-text" style="color: ${car.car_data.Engine === 'ON' ? 'green' : 'red'};">
-                            <strong>Engine:</strong> ${car.car_data.Engine}
-                        </p>
-                        <p class="card-text"><strong>Doors:</strong> ${car.car_data.Doors}</p>
-                        <p class="text-muted">Last Updated: ${car.car_data.Last_Updated}</p>
-                    </div>
-                    
-                `;
+            };
+    
+            socket.onerror = function(e) {
+                console.log('WebSocket error:', e);
+            };
+    
+            socket.onclose = function() {
+                console.log('WebSocket connection closed');
+            };
+    
+            // Function to remove inactive cars every 5 seconds
+            setInterval(() => {
+                const now = Date.now();
+                Object.keys(carTimestamps).forEach(carId => {
+                    if (now - carTimestamps[carId] > 30000) { // 30 seconds
+                        console.log(`Removing car ${carId} due to inactivity`);
+                        carElements[carId].remove(); // Remove from UI
+                        delete carElements[carId]; // Remove from tracking
+                        delete carTimestamps[carId]; // Remove timestamp tracking
+                    }
+                });
+            }, 5000); // Runs every 5 seconds
+    
+        })();
+    </script>
+    
+    <!-- <script defer>
+        (function() {
+            const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+            const socket = new WebSocket(wsProtocol + window.location.host + "/ws/car-status/");
+    
+            let carElements = {}; // Object to store card elements for each car
+    
+            socket.onopen = function() {
+                console.log('WebSocket connection established');
+            };
+    
+            socket.onmessage = function(e) {
+                try {
+                    const message = JSON.parse(e.data);
+    
+                    // Validate message structure
+                    if (!message || !message.data) {
+                        console.error("Invalid WebSocket message:", message);
+                        return;
+                    }
+    
+                    const car = message.data; // Use message.data instead of message.car_data
+                    const carId = car.car_id;
+    
+                    if (!carId) {
+                        console.error("Missing car ID in WebSocket message:", message);
+                        return;
+                    }
+    
+                    const monitorDiv = document.getElementById('car-monitor');
+    
+                    // Check if a card for this car ID already exists, if not, create one
+                    if (!carElements[carId]) {
+                        const carElement = document.createElement('div');
+                        carElement.classList.add('card', 'shadow-sm', 'mb-3');
+                        carElements[carId] = carElement;
+                        monitorDiv.appendChild(carElement);
+                    }
+    
+                    // Update the card for the specific car ID
+                    carElements[carId].innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">🚗 Car ID: <strong>${carId}</strong></h5>
+                            <p class="card-text"><strong>Module:</strong> ${car.module || "N/A"}</p>
+                            <p class="card-text"><strong>Location:</strong> Latitude: ${car.Latitude || "N/A"}, Longitude: ${car.Longitude || "N/A"}</p>
+                            <p class="card-text"><strong>Speed:</strong> ${car.speed || "N/A"} km/h</p>
+                            <p class="card-text"><strong>Fuel Level:</strong> ${car.fuel || "N/A"}%</p>
+                            <p class="card-text" style="color: ${car.Engine === 'ON' ? 'green' : 'red'};">
+                                <strong>Engine:</strong> ${car.Engine || "N/A"}
+                            </p>
+                            <p class="card-text"><strong>Doors:</strong> ${car.Doors || "N/A"}</p>
+                            <p class="text-muted">Last Updated: ${car["Last Updated"] || "N/A"}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error("Error processing WebSocket message:", error);
+                }
             };
     
             socket.onerror = function(e) {
@@ -56,7 +164,9 @@
                 console.log('WebSocket connection closed');
             };
         })();
-    </script>
+    </script> -->
+    
+
 </head>
 <body class="bg-light">
     <div class="container mt-5">

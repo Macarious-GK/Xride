@@ -7,8 +7,13 @@ import time
 from django.db import transaction
 from .models import Car
 import os
+import redis
 # MQTT Broker details
-latest_car_status = {}
+
+redis_client = redis.StrictRedis.from_url(
+    "rediss://red-cjcsrendb61s739bj610:B59haYUZ3iFrOM9g0mzbWubr2ZfReoIc@oregon-redis.render.com:6379",
+    ssl_cert_reqs=None  # Disables certificate validation
+)
 channel_layer = get_channel_layer()
 MQTT_BROKER = "a1npc4fmgfecx6-ats.iot.us-east-2.amazonaws.com"
 MQTT_PORT = 8883
@@ -19,18 +24,6 @@ Door_TOPIC = "car/+/xride/door"
 # CLIENT_CERT = r"D:\Grad\Testing\Certs\client-certificate.pem.crt"
 # CLIENT_KEY = r"D:\Grad\Testing\Certs\client-private.pem.key"
 
-CA_CERT_PATH = "/tmp/ca_cert.pem"
-CLIENT_CERT_PATH = "/tmp/client_cert.pem"
-CLIENT_KEY_PATH = "/tmp/client_key.pem"
-
-def write_cert_file(env_var, filename):
-    """Writes certificate data from an environment variable to a file"""
-    cert_content = os.environ.get(env_var)
-    if not cert_content:
-        raise ValueError(f"❌ Missing {env_var} environment variable")
-    
-    with open(filename, "w") as file:
-        file.write(cert_content)
 
 def on_connect(client, userdata, flags, rc):
     """Callback when MQTT connects"""
@@ -58,24 +51,9 @@ def on_message(client, userdata, msg):
             print("⚠️ Missing car_id in received message. Ignoring.")
             return
 
-        # Update in-memory store
-        latest_car_status[car_id] = data
-        print("outatomic")
-        # Update the database
-        if latitude is not None and longitude is not None:
-            print("in atomic")
-            with transaction.atomic():
-                car = Car.objects.select_for_update().get(id=car_id)
-                car.location_latitude = latitude
-                car.location_longitude = longitude
-                car.speed = data.get("speed")
-                car.fuel_level = data.get("fuel")
-                car.engine_status = data.get("Engine")
+        redis_client.setex(f"car:{car_id}", 30, json.dumps(data))
+        print(f"📡 Data cached for car {car_id} in Redis.")
         
-                car.save(update_fields=["location_longitude", "location_latitude", "speed", "fuel_level", "engine_status"])
-            
-            print(f"✅ Updated car {car_id}: Lat={latitude}, Lon={longitude}")
-
         # Send update to WebSockets
         async_to_sync(channel_layer.group_send)(
             "car_status_group",
@@ -101,6 +79,8 @@ def publish_message(topic, payload, type):
         if type == "door":
             print("Initializing MQTT client for publishing...")
             client = mqtt.Client()
+            # client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+
             client.tls_set(
                 ca_certs=CA_CERT_PATH,
                 certfile=CLIENT_CERT_PATH,
@@ -119,6 +99,8 @@ def publish_message(topic, payload, type):
         if type == "status":
             print("Initializing MQTT client for publishing...")
             client = mqtt.Client()
+            # client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+
             client.tls_set(
                 ca_certs=CA_CERT_PATH,
                 certfile=CLIENT_CERT_PATH,
@@ -137,6 +119,71 @@ def publish_message(topic, payload, type):
     except Exception as e:
         print(f"❌ Error publishing message: {e}")
 
+def update_database():
+    """Function to update the database every 10 seconds from Redis."""
+    while True:
+        try:
+            # Get all car IDs from Redis
+            car_keys = redis_client.keys('car:*')
+
+            for key in car_keys:
+                car_id = key.decode().split(":")[1]
+                car_data = json.loads(redis_client.get(key))
+
+                if car_data:
+                    latitude = car_data.get("Latitude")
+                    longitude = car_data.get("Longitude")
+                    speed = car_data.get("speed")
+                    fuel = car_data.get("fuel")
+                    engine_status = car_data.get("Engine")
+
+                    if latitude is not None and longitude is not None:
+                        with transaction.atomic():
+                            car = Car.objects.select_for_update().get(id=car_id)
+                            car.location_latitude = latitude
+                            car.location_longitude = longitude
+                            car.speed = speed
+                            car.fuel_level = fuel
+                            car.engine_status = engine_status
+                            car.save(update_fields=["location_latitude", "location_longitude", "speed", "fuel_level", "engine_status"])
+                            print(f"✅ Updated car {car_id} in database.")
+
+            # Wait for 10 seconds before updating again
+            time.sleep(10)
+
+        except Exception as e:
+            print(f"❌ Error updating database: {e}")
+            time.sleep(10)
+
+
+# def start_mqtt_client():
+#     """Initialize and run MQTT Client"""
+#     try:
+#         print("Initializing MQTT client...")
+#         client = mqtt.Client()
+#         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+#         client.on_connect = on_connect
+#         client.on_message = on_message
+#         client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+#         # Start background database update task
+#         threading.Thread(target=update_database, daemon=True).start()
+#         client.loop_forever()
+#     except Exception as e:
+#         print(f"Error initializing MQTT client: {e}")
+
+CA_CERT_PATH = "/tmp/ca_cert.pem"
+CLIENT_CERT_PATH = "/tmp/client_cert.pem"
+CLIENT_KEY_PATH = "/tmp/client_key.pem"
+
+def write_cert_file(env_var, filename):
+    """Writes certificate data from an environment variable to a file"""
+    cert_content = os.environ.get(env_var)
+    if not cert_content:
+        raise ValueError(f"❌ Missing {env_var} environment variable")
+    
+    with open(filename, "w") as file:
+        file.write(cert_content)
 
 def start_mqtt_client():
     """Initialize and run MQTT Client"""
@@ -197,20 +244,3 @@ def start_mqtt_client():
 #     # car.latitude = data.get("latitude")
 #     # car.longitude = data.get("longitude")   
 #     # car.save(updata_fields=['latitude', 'longitude'])
-
-# def start_mqtt_client():
-#     """Initialize and run MQTT Client"""
-#     try:
-#         print("Initializing MQTT client...")
-#         client = mqtt.Client()
-#         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
-#         client.on_connect = on_connect
-#         client.on_message = on_message
-#         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-
-#         # Start background database update task
-#         # threading.Thread(target=update_database, daemon=True).start()
-
-#         client.loop_forever()
-#     except Exception as e:
-#         print(f"Error initializing MQTT client: {e}")
