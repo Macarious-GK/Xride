@@ -237,7 +237,7 @@ class Car(models.Model):
     booking_price_12H = models.DecimalField(max_digits=8, decimal_places=2)
     
     def __str__(self):
-        return f"ID: {self.id} Model: {self.car_model} - Plate: {self.car_plate} - Temp: {self.temperature} - status: {self.reservation_status}"
+        return f"ID: {self.id} Model: {self.car_model} - Plate: {self.car_plate} - status: {self.reservation_status}"
 
 class Maintenance(models.Model):
     class MaintenanceType(models.TextChoices):

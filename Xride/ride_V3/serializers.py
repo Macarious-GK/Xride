@@ -31,7 +31,7 @@ class CarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
         fields = [
-            'id', 'car_plate', 'door_status', 'temperature',
+            'id', 'car_plate', 'door_status',
             'location_latitude', 'location_longitude', 'reservation_status',
             'booking_price_2H', 'booking_price_6H', 'booking_price_12H',
             'car_model', 'location'

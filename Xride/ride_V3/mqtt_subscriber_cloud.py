@@ -101,7 +101,7 @@ def on_message(client, userdata, msg):
                 car.fuel_level = data.get("fuel")
                 car.engine_status = data.get("Engine")
         
-                car.save(update_fields=["location_longitude", "location_latitude"])
+                car.save(update_fields=["location_longitude", "location_latitude", "speed", "fuel_level", "engine_status"])
             
             print(f"✅ Updated car {car_id}: Lat={latitude}, Lon={longitude}")
 
