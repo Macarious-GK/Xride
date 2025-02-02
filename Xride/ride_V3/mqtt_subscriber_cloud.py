@@ -95,6 +95,7 @@ def on_message(client, userdata, msg):
 def publish_message(topic, payload):
     """Publishes a message to an MQTT topic."""
     try:
+        print("Initializing MQTT client for publishing...")
         client = mqtt.Client()
         client.tls_set(
             ca_certs=CA_CERT_PATH,
@@ -102,9 +103,10 @@ def publish_message(topic, payload):
             keyfile=CLIENT_KEY_PATH
         )
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        print(f"🔗 Connected to MQTT Broker for publishing. Publishing message...")
         client.publish(topic, json.dumps(payload))
-        client.disconnect()
         print(f"📤 Published message to {topic}: {payload}")
+        client.disconnect()
     except Exception as e:
         print(f"❌ Error publishing message: {e}")
 
