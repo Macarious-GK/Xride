@@ -15,7 +15,7 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.shortcuts import render
-# from .mqtt_subscriber_cloud import publish_car_door_state
+from .mqtt_subscriber_cloud import *
 
 # -------------------------------------Reusable views--------------------------------------------
 
@@ -258,6 +258,8 @@ class DoorStatusUpdateView(APIView):
 
             # publish_car_door_state(car_id, car.door_status)  # Publish updated status
             car.save()  # Save the updated status
+            Door_TOPIC = f"car/{car_id}/xride/door"
+            publish_message(Door_TOPIC, car.door_status)
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)

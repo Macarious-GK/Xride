@@ -88,7 +88,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
                 # print("Car Data to be sent:", car_data)  # Debugging
                 if car_data:
                     await self.send(text_data=json.dumps({'car_data': car_data}))
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
         except asyncio.CancelledError:
             print("send_car_updates task canceled")
         except Exception as e:

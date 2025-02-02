@@ -40,35 +40,6 @@ def on_connect(client, userdata, flags, rc):
     else:
         print(f"❌ MQTT Connection failed with error code {rc}")
 
-# def on_message(client, userdata, msg):
-#     """Handles incoming MQTT messages and updates in-memory store + pushes to WebSockets"""
-#     data = json.loads(msg.payload.decode())
-#     if data.get("car-id"):
-#         car_id = data.get("car-id")
-#     if data.get("car_id"):
-#         car_id = data.get("car_id") 
-#     module = data.get("module")
-
-#     # print("Data from MQTT: ",data)
-#     if not car_id:
-#         print("⚠️ Missing car-id in received message. Ignoring.")
-#         return
-#     latest_car_status[car_id] = data
-
-#     # Send update to WebSockets
-#     async_to_sync(channel_layer.group_send)(
-#         "car_status_group",
-#         {
-#             "type": "car_update_event",
-#             "data": data,
-#         }
-#     )
-#     # print("Data sent to WebSocket via group_send")
-#     # print("after",data)
-#     # car  = car.objects.get(id=car_id)
-#     # car.latitude = data.get("latitude")
-#     # car.longitude = data.get("longitude")   
-#     # car.save(updata_fields=['latitude', 'longitude'])
 
 def on_message(client, userdata, msg):
     """Handles incoming MQTT messages by updating the database, 
@@ -121,22 +92,21 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"❌ Error processing message: {e}")
 
-# def start_mqtt_client():
-#     """Initialize and run MQTT Client"""
-#     try:
-#         print("Initializing MQTT client...")
-#         client = mqtt.Client()
-#         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
-#         client.on_connect = on_connect
-#         client.on_message = on_message
-#         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-
-#         # Start background database update task
-#         # threading.Thread(target=update_database, daemon=True).start()
-
-#         client.loop_forever()
-#     except Exception as e:
-#         print(f"Error initializing MQTT client: {e}")
+def publish_message(topic, payload):
+    """Publishes a message to an MQTT topic."""
+    try:
+        client = mqtt.Client()
+        client.tls_set(
+            ca_certs=CA_CERT_PATH,
+            certfile=CLIENT_CERT_PATH,
+            keyfile=CLIENT_KEY_PATH
+        )
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.publish(topic, json.dumps(payload))
+        client.disconnect()
+        print(f"📤 Published message to {topic}: {payload}")
+    except Exception as e:
+        print(f"❌ Error publishing message: {e}")
 
 
 def start_mqtt_client():
@@ -167,3 +137,51 @@ def start_mqtt_client():
 
     except Exception as e:
         print(f"❌ Error initializing MQTT client: {e}")
+
+
+# def on_message(client, userdata, msg):
+#     """Handles incoming MQTT messages and updates in-memory store + pushes to WebSockets"""
+#     data = json.loads(msg.payload.decode())
+#     if data.get("car-id"):
+#         car_id = data.get("car-id")
+#     if data.get("car_id"):
+#         car_id = data.get("car_id") 
+#     module = data.get("module")
+
+#     # print("Data from MQTT: ",data)
+#     if not car_id:
+#         print("⚠️ Missing car-id in received message. Ignoring.")
+#         return
+#     latest_car_status[car_id] = data
+
+#     # Send update to WebSockets
+#     async_to_sync(channel_layer.group_send)(
+#         "car_status_group",
+#         {
+#             "type": "car_update_event",
+#             "data": data,
+#         }
+#     )
+#     # print("Data sent to WebSocket via group_send")
+#     # print("after",data)
+#     # car  = car.objects.get(id=car_id)
+#     # car.latitude = data.get("latitude")
+#     # car.longitude = data.get("longitude")   
+#     # car.save(updata_fields=['latitude', 'longitude'])
+
+# def start_mqtt_client():
+#     """Initialize and run MQTT Client"""
+#     try:
+#         print("Initializing MQTT client...")
+#         client = mqtt.Client()
+#         client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+#         client.on_connect = on_connect
+#         client.on_message = on_message
+#         client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+#         # Start background database update task
+#         # threading.Thread(target=update_database, daemon=True).start()
+
+#         client.loop_forever()
+#     except Exception as e:
+#         print(f"Error initializing MQTT client: {e}")
