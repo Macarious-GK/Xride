@@ -89,9 +89,10 @@ def on_message(client, userdata, msg):
 
         # Update in-memory store
         latest_car_status[car_id] = data
-
+        print("outatomic")
         # Update the database
         if latitude is not None and longitude is not None:
+            print("in atomic")
             with transaction.atomic():
                 car = Car.objects.select_for_update().get(id=car_id)
                 car.latitude = latitude
