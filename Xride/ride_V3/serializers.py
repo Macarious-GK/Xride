@@ -102,7 +102,7 @@ class ReservationHistorySerializer(serializers.ModelSerializer):
 class CurrentlUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'wallet_balance', 'verified', 'phone_number', 'address', 'national_id', 'personal_photo', 'licence_photo', 'national_id_photo']
+        fields = ['username', 'email', 'first_name', 'last_name', 'wallet_balance', 'verified', 'phone_number', 'address', 'national_id', 'personal_photo', 'licence_photo', 'national_id_photo','is_superuser','is_staff']
 
 
 
