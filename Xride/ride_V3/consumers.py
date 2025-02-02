@@ -3,7 +3,6 @@ import json
 import asyncio
 
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Car
 from asgiref.sync import sync_to_async
 # This dictionary will hold the latest car statuses
 
@@ -47,7 +46,10 @@ latest_car_status = {}
 status_lock = asyncio.Lock()
 
 class CarStatusConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
+        from .models import Car
+
         self.room_group_name = 'car_status_group'
         
         # Join the group
