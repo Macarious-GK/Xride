@@ -92,15 +92,6 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"❌ Error processing message: {e}")
 
-
-
-def on_connect_pub(client, userdata, flags, rc):
-    if rc == 0:
-        print(f"✅ Connected to MQTT Broker")
-    else:
-        print(f"❌ MQTT Connection failed with error code {rc}")
-
-# Callback when a message is published
 def on_publish(client, userdata, mid):
     print(f"📤 Message Published with ID: {mid}")
 
@@ -114,11 +105,14 @@ def publish_message(topic, payload):
             certfile=CLIENT_CERT_PATH,
             keyfile=CLIENT_KEY_PATH
         )
-        client.on_connect = on_connect_pub
+
         client.on_publish = on_publish
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.loop_start()
         print(f"🔗 Connected to MQTT Broker for publishing. Publishing message...")
         client.publish(topic, json.dumps(payload), qos=1)
+        time.sleep(6)
+
         print(f"📤 Published message to {topic}: {payload}")
         client.disconnect()
     except Exception as e:
