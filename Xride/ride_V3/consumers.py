@@ -45,7 +45,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
                 car_keys = redis_client.keys("car:*")
 
                 if not car_keys:
-                    await asyncio.sleep(10.5)
+                    await asyncio.sleep(.5)
                     continue
 
                 for key in car_keys:
