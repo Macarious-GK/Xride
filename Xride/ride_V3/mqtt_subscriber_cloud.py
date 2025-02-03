@@ -91,19 +91,19 @@ def on_message(client, userdata, msg):
         latest_car_status[car_id] = data
         print("outatomic")
         # Update the database
-        # if latitude is not None and longitude is not None:
-        #     print("in atomic")
-        #     with transaction.atomic():
-        #         car = Car.objects.select_for_update().get(id=car_id)
-        #         car.location_latitude = latitude
-        #         car.location_longitude = longitude
-        #         car.speed = data.get("speed")
-        #         car.fuel_level = data.get("fuel")
-        #         car.engine_status = data.get("Engine")
+        if latitude is not None and longitude is not None:
+            print("in atomic")
+            with transaction.atomic():
+                car = Car.objects.select_for_update().get(id=car_id)
+                car.location_latitude = latitude
+                car.location_longitude = longitude
+                car.speed = data.get("speed")
+                car.fuel_level = data.get("fuel")
+                car.engine_status = data.get("Engine")
         
-        #         car.save(update_fields=["location_longitude", "location_latitude", "speed", "fuel_level", "engine_status"])
+                car.save(update_fields=["location_longitude", "location_latitude", "speed", "fuel_level", "engine_status"])
             
-        #     print(f"✅ Updated car {car_id}: Lat={latitude}, Lon={longitude}")
+            print(f"✅ Updated car {car_id}: Lat={latitude}, Lon={longitude}")
 
         # Send update to WebSockets
         async_to_sync(channel_layer.group_send)(
