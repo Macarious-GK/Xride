@@ -299,7 +299,7 @@ class DoorStatusUpdateView(APIView):
             Door_TOPIC = f"car/{car_id}/xride/door"
             data = {"door":car.door_status}
             type = "door"
-            publish_message(Door_TOPIC, data,type)
+            # publish_message(Door_TOPIC, data,type)
             return Response({'status': status_message})
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
