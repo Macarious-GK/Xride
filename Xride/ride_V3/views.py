@@ -241,12 +241,12 @@ class ReleaseCarView(APIView):
         reservation.delete()
 
         # Set the car status to available
-        # car.reservation_status = 'available'
+        car.reservation_status = 'available'
         # car.location_latitude = user_lat
         # car.location_longitude = user_lon
         # car.door_status = 'locked'  # Lock the door when releasing the car
-        # car.location = reservation_park_dist_obj
-        # car.save(update_fields=['reservation_status','door_status','location','location_latitude','location_longitude'])
+        car.location = reservation_park_dist_obj
+        car.save(update_fields=['reservation_status','location'])
 
         return Response({
             "message": f"You have successfully released {car.car_model.model_name}.",
