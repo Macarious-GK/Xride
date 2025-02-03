@@ -62,7 +62,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
                             }
                         )
 
-                await asyncio.sleep(10.5)  # Sleep for 10.5 seconds
+                await asyncio.sleep(1)  # Sleep for 10.5 seconds
         except asyncio.CancelledError:
             print("send_car_updates task canceled")
         except Exception as e:
