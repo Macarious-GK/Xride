@@ -271,7 +271,7 @@ class CarStatusView(APIView):
             status_TOPIC = f"car/{car_id}/xride/status"
             data = {"status":"status"}
             type = "status"
-            publish_message(status_TOPIC, data,type)
+            # publish_message(status_TOPIC, data,type)
             return Response(serializer.data)
         except Car.DoesNotExist:
             return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
