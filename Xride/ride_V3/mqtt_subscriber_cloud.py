@@ -20,9 +20,9 @@ MQTT_PORT = 8883
 MQTT_TOPIC = "car/+/xride/module/+/data"
 Door_TOPIC = "car/+/xride/door"
 
-# CA_CERT = r"D:\Grad\Testing\Certs\CA.pem"
-# CLIENT_CERT = r"D:\Grad\Testing\Certs\client-certificate.pem.crt"
-# CLIENT_KEY = r"D:\Grad\Testing\Certs\client-private.pem.key"
+CA_CERT = r"D:\Grad\Testing\Certs\CA.pem"
+CLIENT_CERT = r"D:\Grad\Testing\Certs\client-certificate.pem.crt"
+CLIENT_KEY = r"D:\Grad\Testing\Certs\client-private.pem.key"
 
 
 def on_connect(client, userdata, flags, rc):
@@ -32,7 +32,6 @@ def on_connect(client, userdata, flags, rc):
         client.subscribe(MQTT_TOPIC)
     else:
         print(f"❌ MQTT Connection failed with error code {rc}")
-
 
 def on_message(client, userdata, msg):
     """Handles incoming MQTT messages by updating the database, 
@@ -62,6 +61,8 @@ def on_message(client, userdata, msg):
                 "data": data,
             }
         )
+        reset_timer()
+
 
     except Car.DoesNotExist:
         print(f"❌ Car with ID {car_id} not found in the database.")
@@ -79,13 +80,13 @@ def publish_message(topic, payload, type):
         if type == "door":
             print("Initializing MQTT client for publishing...")
             client = mqtt.Client()
-            # client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+            client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
 
-            client.tls_set(
-                ca_certs=CA_CERT_PATH,
-                certfile=CLIENT_CERT_PATH,
-                keyfile=CLIENT_KEY_PATH
-            )
+            # client.tls_set(
+            #     ca_certs=CA_CERT_PATH,
+            #     certfile=CLIENT_CERT_PATH,
+            #     keyfile=CLIENT_KEY_PATH
+            # )
 
             client.on_publish = on_publish
             client.connect(MQTT_BROKER, MQTT_PORT, 60)
@@ -99,13 +100,13 @@ def publish_message(topic, payload, type):
         if type == "status":
             print("Initializing MQTT client for publishing...")
             client = mqtt.Client()
-            # client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
+            client.tls_set(CA_CERT, certfile=CLIENT_CERT, keyfile=CLIENT_KEY)
 
-            client.tls_set(
-                ca_certs=CA_CERT_PATH,
-                certfile=CLIENT_CERT_PATH,
-                keyfile=CLIENT_KEY_PATH
-            )
+            # client.tls_set(
+            #     ca_certs=CA_CERT_PATH,
+            #     certfile=CLIENT_CERT_PATH,
+            #     keyfile=CLIENT_KEY_PATH
+            # )
 
             client.on_publish = on_publish
             client.connect(MQTT_BROKER, MQTT_PORT, 60)
@@ -119,9 +120,33 @@ def publish_message(topic, payload, type):
     except Exception as e:
         print(f"❌ Error publishing message: {e}")
 
+last_message_time = time.time()
+update_running = False
+update_thread = None
+lock = threading.Lock()
+
+def reset_timer():
+    """Resets the last received message timer and ensures database updates are running."""
+    global last_message_time, update_running, update_thread
+    last_message_time = time.time()
+
+    with lock:
+        if not update_running:
+            update_running = True
+            update_thread = threading.Thread(target=update_database, daemon=True)
+            update_thread.start()
+
 def update_database():
-    """Function to update the database every 10 seconds from Redis."""
+    """Function to update the database every 10 seconds from Redis. Stops if no messages for 40s."""
+    global update_running
     while True:
+        with lock:
+            # Check if 40 seconds have passed without a new message
+            if time.time() - last_message_time > 40:
+                print("⏳ No messages received for 40s. Stopping database updates.")
+                update_running = False
+                return  # Exit the function
+
         try:
             # Get all car IDs from Redis
             car_keys = redis_client.keys('car:*')
@@ -148,7 +173,6 @@ def update_database():
                             car.save(update_fields=["location_latitude", "location_longitude", "speed", "fuel_level", "engine_status"])
                             print(f"✅ Updated car {car_id} in database.")
 
-            # Wait for 10 seconds before updating again
             time.sleep(10)
 
         except Exception as e:

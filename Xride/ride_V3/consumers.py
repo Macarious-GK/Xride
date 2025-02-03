@@ -45,7 +45,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
                 car_keys = redis_client.keys("car:*")
 
                 if not car_keys:
-                    await asyncio.sleep(.5)
+                    await asyncio.sleep(1.5)
                     continue
 
                 for key in car_keys:
@@ -62,7 +62,7 @@ class CarStatusConsumer(AsyncWebsocketConsumer):
                             }
                         )
 
-                await asyncio.sleep(1)  # Sleep for 10.5 seconds
+                await asyncio.sleep(1.5)  # Sleep for 10.5 seconds
         except asyncio.CancelledError:
             print("send_car_updates task canceled")
         except Exception as e:
